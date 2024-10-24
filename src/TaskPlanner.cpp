@@ -78,6 +78,19 @@ void TaskPlanner::prep_next_order() {
         dropoff_station_id = new_order.station_id;
         pickup_station_id = product_locations[new_order.product_id];
 }
+std::vector<NavNode> generatePathToStation(const Pose2d& destination) {
+    std::vector<NavNode> path;
+    path.push_back(NavNode(ActionType::start));
+
+    // Example path logic: move in straight line to destination
+    path.push_back(NavNode(ActionType::normal));  // Move towards the station
+
+    NavNode node(ActionType::advance_state);
+    node.pose = destination;  // Set final pose at the destination
+    path.push_back(node);
+
+    return path;
+}
 
 bool TaskPlanner::load_locations_from_file() {
         /*
@@ -85,15 +98,20 @@ bool TaskPlanner::load_locations_from_file() {
 
         shelf#1 (-2,-1)   shelf#4 (2,-1)
         */
-        std::vector<NavNode> pth;  // TODO each needs its own path from the center
-        station_locations[1] = Station(1, Pose2d(1, 1, 0), pth);
-        station_locations[2] = Station(2, Pose2d(1, 1, 0), pth);
-        station_locations[3] = Station(3, Pose2d(5, 1, 0), pth);
 
-        station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), pth); 
-        station_locations[-2] = Station(-2, Pose2d(-2, 2, 0), pth);
-        station_locations[-3] = Station(-3, Pose2d(2, 2, 0), pth);
-        station_locations[-4] = Station(-4, Pose2d(2, -1, 0), pth);
+        //std::vector<NavNode> pth;  // TODO each needs its own path from the center
+        
+        // Load station locations with paths generated from the center to the station
+        station_locations[1] = Station(1, Pose2d(1, 1, 0), generatePathToStation(Pose2d(1, 1, 0)));
+        station_locations[2] = Station(2, Pose2d(2, 1, 0), generatePathToStation(Pose2d(2, 1, 0)));
+        station_locations[3] = Station(3, Pose2d(5, 1, 0), generatePathToStation(Pose2d(5, 1, 0)));
+
+        station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), generatePathToStation(Pose2d(-2, -1, 0)));
+        station_locations[-2] = Station(-2, Pose2d(-2, 2, 0), generatePathToStation(Pose2d(-2, 2, 0)));
+        station_locations[-3] = Station(-3, Pose2d(2, 2, 0), generatePathToStation(Pose2d(2, 2, 0)));
+        station_locations[-4] = Station(-4, Pose2d(2, -1, 0), generatePathToStation(Pose2d(2, -1, 0)));
+
+    return true;
 }
 
 bool get_visible_station_code(int& tag_id) {
