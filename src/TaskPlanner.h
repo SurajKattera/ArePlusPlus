@@ -14,22 +14,8 @@
 
 class TaskPlanner : public rclcpp::Node {
 public:
-    TaskPlanner(std::vector<std::pair<int, int>> initial_tasks) : Node("task_planner") {
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(100),
-            std::bind(&TaskPlanner::timer_callback, this));
-
-        for (auto task: initial_tasks){
-            Order order(task.first, task.second);
-            pending_orders_.push(order);
-        }
-    }
-
-    TaskPlanner() : Node("task_planner") {
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(100),
-            std::bind(&TaskPlanner::timer_callback, this));
-    }
+    TaskPlanner(std::vector<std::pair<int, int>> initial_tasks);
+    TaskPlanner();
 
 private:
     void timer_callback();  // This one gets to do the main logic

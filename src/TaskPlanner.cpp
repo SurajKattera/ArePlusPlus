@@ -1,25 +1,24 @@
 #include "TaskPlanner.h"
 
-class TaskPlanner : public rclcpp::Node {
-public:
-    TaskPlanner(std::vector<std::pair<int, int>> initial_tasks) : Node("task_planner") {
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(100),
-            std::bind(&TaskPlanner::timer_callback, this));
 
-        for (auto task: initial_tasks){
-            Order order(task.first, task.second);
-            pending_orders_.push(order);
-        }
+TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
+: Node("task_planner") {
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&TaskPlanner::timer_callback, this));
+
+    for (auto task: initial_tasks) {
+        Order order(task.first, task.second);
+        pending_orders_.push(order);
     }
+}
 
-    TaskPlanner() : Node("task_planner") {
-        timer_ = this->create_wall_timer(
-            std::chrono::milliseconds(100),
-            std::bind(&TaskPlanner::timer_callback, this));
-    }
-
-private:
+TaskPlanner::TaskPlanner()
+: Node("task_planner") {
+    timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(100),
+        std::bind(&TaskPlanner::timer_callback, this));
+}
 
 bool TaskPlanner::is_at_target(const Pose2d& target) {
         // Jack, Thish here
@@ -217,4 +216,3 @@ bool TaskPlanner::get_visible_station_code(int& tag_id) {
         
 }
 
-};
