@@ -17,6 +17,11 @@ public:
             odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
                 "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
 
+        // Creating service for E-STOP functionality
+        estopService_ = this->create_service<std_srvs::srv::SetBool>("estop", 
+                std::bind(&MovingNode::estop,this,std::placeholders::_1, std::placeholders::_2));
+
+
         
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(200), // Timer period
@@ -165,6 +170,45 @@ private:
 
         
     }
+
+    // E-STOP service callback function
+    void MovingNode::estop(const std::shared_ptr<std_srvs::srv::SetBool::Request req,std::shared_ptr<std_srvs::srv::SetBool::Response> res){
+
+        geometry_msgs::msg::Twist moveMsg_;
+    
+    //If true service call received
+        if(req->data)
+        {
+           //Check if mission is active, send log info stating status of task
+           /* 
+               
+               if(missionVariable){RCLCPP_INFO(this->get_logger(),"Task active, and will continue");}
+               else{RCLCPP_INFO(this->get_logger(),"No Tasks for turtlebot to conduct");}
+           */
+        }
+    //If false service call received
+        else
+        {
+        	//Stop mission and movement of turtlebot
+        	movementFlag_ = false;
+        	//Stopping turtlebot's movement (Looping 10 times to ensure movement is halted)
+        	for(int i = 0; i < 10 ; i++)
+            {
+        		//Setting linear and angular velocities to 0
+        		moveMsg_.linear.x = 0 ;  
+        		moveMsg_.linear.y = 0;  
+        		moveMsg_.angular.z = 0;
+                
+        		//Publishing velocities to topic
+        		cmd_vel_pub_->publish(moveMsg_);
+        	}
+        }
+    
+    	res->success = true;
+        res->message = "E-STOP Pressed";
+    
+    }
+
 
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_; ///< Publisher for cylinder visualization markers
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_; ///< Subscription to LaserScan data
