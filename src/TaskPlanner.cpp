@@ -176,20 +176,25 @@ void TaskPlanner::timer_callback() {
                                 status = JobStatus::FromDestination;
                         } else {
                                 // TODO @suraj Print an error. This should not trigger, implies the job wasn't reset, or somehow had more than 4 phases
+                                RCLCPP_INFO(this->get_logger(),"ERROR");
                         }
                         break;
                 case ActionType::pickup:
                         // TODO print a message idk @suraj
+                        RCLCPP_INFO(this->get_logger(),"Packages picked up");
                         break;
                 case ActionType::dropoff:
                         // TODO print a message idk @suraj
+                        RCLCPP_INFO(this->get_logger(),"Packages dropped off");
                         break;
                 case ActionType::start:
                         // TODO print a message? @suraj
+                        RCLCPP_INFO(this->get_logger(),"New job, moving to target location now");
                         status = JobStatus::ToPickup;
                         break;
                 case ActionType::finish:
                         // TODO not sure. Print a message? @suraj
+                        RCLCPP_INFO(this->get_logger(),"Job finished, remaining stationed");
                         break;
                 default:
                         // This means an invalid action type, trigger an error
@@ -205,9 +210,11 @@ void TaskPlanner::timer_callback() {
             // The apriltag doesn't match the expected value
             if (status == JobStatus::ToPickup && station_id != pickup_station_id) {
                 // TODO log an error or abort idk @suraj
+                RCLCPP_INFO(this->get_logger(),"Incorrect pickup location, task aborted");
             }
             if (status == JobStatus::ToDestination && station_id != dropoff_station_id) {
                 // TODO log an error or abort idk @suraj
+                RCLCPP_INFO(this->get_logger(),"Incorrect dropoff location, task aborted");
             }
         }
     }
