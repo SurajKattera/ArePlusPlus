@@ -181,16 +181,23 @@ private:
         {
            //Check if mission is active, send log info stating status of task
            /* 
-               
-               if(missionVariable){RCLCPP_INFO(this->get_logger(),"Task active, and will continue");}
-               else{RCLCPP_INFO(this->get_logger(),"No Tasks for turtlebot to conduct");}
+               //If robot is currently active
+               if(move_now_)
+               {
+                   RCLCPP_INFO(this->get_logger(),"Task active, and will continue");
+               {
+               else
+               {
+                   move_now_ == true; // NOTE:ENSURE THIS DOESNT CAUSE ERRORS WITH TURTLEBOT MOVING WITH NO POINT TO GO TO
+                   RCLCPP_INFO(this->get_logger(),"Turtlebot restarted, will continue if outstanding tasks available");
+               }
            */
         }
     //If false service call received
         else
         {
         	//Stop mission and movement of turtlebot
-        	movementFlag_ = false;
+        	move_now_ == false;
         	//Stopping turtlebot's movement (Looping 10 times to ensure movement is halted)
         	for(int i = 0; i < 10 ; i++)
             {
