@@ -226,3 +226,6 @@ bool TaskPlanner::get_visible_station_code(int& tag_id) {
         
 }
 
+void TaskPlanner::set_activation_state(bool state) {
+        this->is_active = state;
+}

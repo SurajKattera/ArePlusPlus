@@ -16,6 +16,8 @@ class TaskPlanner : public rclcpp::Node {
 public:
     TaskPlanner(std::vector<std::pair<int, int>> initial_tasks);
     TaskPlanner();
+    
+    void set_activation_state(bool state);
 
 private:
     void timer_callback();  // This one gets to do the main logic
@@ -27,7 +29,7 @@ private:
     void prep_next_order();  // < Adi
     bool load_locations_from_file();  // < Dinh, lmk if you want a hand here.
     bool get_visible_station_code(int& tag_id);  // < Dinh
-    
+
     std::vector<NavNode> generatePathToStation(const Pose2d& destination);
     
 

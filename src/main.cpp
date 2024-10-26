@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     node = std::make_shared<TaskPlanner>(initial_tasks);
 
     if (do_auto_load_locations) {
-        //node->set_activation_state(true);
+        node->set_activation_state(true);
     }
 
     rclcpp::spin(node);
