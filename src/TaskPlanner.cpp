@@ -61,6 +61,18 @@ void TaskPlanner::prep_next_order() {
         auto pathCtoA = station_locations[product_locations[new_order.product_id]].path;
         auto pathCtoB = station_locations[new_order.station_id].path;
 
+        if (pathCtoA.empty()) {
+            RCLCPP_WARN(this->get_logger(), "Warning: pathCtoA is empty!");
+            assert(!pathCtoA.empty() && "pathCtoA must have at least one element");
+            return;
+        }
+
+        if (pathCtoB.empty()) {
+            RCLCPP_WARN(this->get_logger(), "Warning: pathCtoB is empty!");
+            assert(!pathCtoB.empty() && "pathCtoB must have at least one element");
+            return;
+        }
+
         NavNode node(ActionType::start);
         current_job_points_.push(node);
 
