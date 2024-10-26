@@ -49,9 +49,17 @@ void TaskPlanner::prep_next_order() {
     Order new_order = pending_orders_.front();
     pending_orders_.pop();
 
-    // TODO
-    // if (new_order.product_id not in product_locations): print warning and retry next
-    // if (new_order.station_id not in station_locations): print warning and retry next
+    if (product_locations.find(new_order.product_id) == product_locations.end()) {
+        RCLCPP_WARN(this->get_logger(), "Product ID %d not found in product locations. Skipping order.", new_order.product_id);
+        prep_next_order();  // Try to get a new order
+        return;
+    }
+
+    if (station_locations.find(new_order.station_id) == station_locations.end()) {
+        RCLCPP_WARN(this->get_logger(), "Station ID %d not found in station locations. Skipping order.", new_order.station_id);
+        prep_next_order();  // Try to get a new order
+        return;
+    }
 
     while (current_job_points_.size()) {
         current_job_points_.pop();
