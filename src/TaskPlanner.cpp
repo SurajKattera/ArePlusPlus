@@ -122,9 +122,57 @@ void TaskPlanner::prep_next_order() {
 
 std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d &destination) {
     std::vector<NavNode> path;
-    path.push_back(NavNode(ActionType::normal)); // Move towards the station
+
+    // Assume the robot starts at the origin (0, 0, 0)
+    Pose2d current_pose(0.0, 0.0, 0.0);
+
+    double step_size = 0.5;  // Distance between points along the path
+
+    // Calculate the differences between the current pose and the destination
+    double dx = destination.pos_x - current_pose.pos_x;
+    double dy = destination.pos_y - current_pose.pos_y;
+    double dyaw = destination.yaw - current_pose.yaw;
+
+    // Determine the number of steps 
+    int steps = std::max(std::abs(dx / step_size), std::abs(dy / step_size));
+
+    // Generate intermediate points along the path 
+    for (int i = 1; i <= steps; ++i) {
+        double x = current_pose.pos_x + (i * dx) / steps;
+        double y = current_pose.pos_y + (i * dy) / steps;
+        double yaw = current_pose.yaw + (i * dyaw) / steps;
+
+        Pose2d intermediate_pose(x, y, yaw);
+
+        // Create a NavNode for the intermediate pose with ActionType::normal
+        NavNode node(ActionType::normal);
+        node.pose = intermediate_pose;
+
+        // Optionally, set flags for manual or final approach if needed
+        if (i == steps) {
+            node.is_final_approach = true;  // Mark the last node as the final approach
+        }
+
+        path.push_back(node);
+    }
+
+    // Add the final destination node with ActionType::normal
+    NavNode destination_node(ActionType::normal);
+    destination_node.pose = destination;
+    destination_node.is_final_approach = true;  // Ensure this is marked as the final approach
+    path.push_back(destination_node);
+
+
+    RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
+                destination.pos_x, destination.pos_y, destination.yaw);
+    for (const auto& node : path) {
+        RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
+                    node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
+    }
+
     return path;
 }
+
 
 bool TaskPlanner::load_locations_from_file() {
     /*
