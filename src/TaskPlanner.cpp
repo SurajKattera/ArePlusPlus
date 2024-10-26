@@ -114,15 +114,7 @@ void TaskPlanner::prep_next_order() {
 
 std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d &destination) {
     std::vector<NavNode> path;
-    path.push_back(NavNode(ActionType::start));
-
-    // Example path logic: move in straight line to destination
     path.push_back(NavNode(ActionType::normal)); // Move towards the station
-
-    NavNode node(ActionType::advance_state);
-    node.pose = destination; // Set final pose at the destination
-    path.push_back(node);
-
     return path;
 }
 
@@ -132,8 +124,6 @@ bool TaskPlanner::load_locations_from_file() {
 
     shelf#1 (-2,-1)   shelf#4 (2,-1)
     */
-
-    // std::vector<NavNode> pth;  // TODO each needs its own path from the center
 
     // Load station locations with paths generated from the center to the station
     station_locations[1] = Station(1, Pose2d(1, 1, 0), generatePathToStation(Pose2d(1, 1, 0)));
@@ -148,7 +138,9 @@ bool TaskPlanner::load_locations_from_file() {
     return true;
 }
 
-bool get_visible_station_code(int &tag_id) {
+bool TaskPlanner::get_visible_station_code(int &tag_id) {
+    RCLCPP_WARN(this->get_logger(), "Incomplete call to get_visible_station_code()");
+    
 }
 
 void TaskPlanner::timer_callback() {
@@ -192,25 +184,21 @@ void TaskPlanner::timer_callback() {
                     status = JobStatus::FromDestination;
                 }
                 else {
-                    // TODO @suraj Print an error. This should not trigger, implies the job wasn't reset, or somehow had more than 4 phases
+                    // TODO @suraj Print a more descriptive error message, not error. This should not trigger, implies the job wasn't reset, or somehow had more than 4 phases
                     RCLCPP_INFO(this->get_logger(), "ERROR");
                 }
                 break;
             case ActionType::pickup:
-                // TODO print a message idk @suraj
                 RCLCPP_INFO(this->get_logger(), "Packages picked up");
                 break;
             case ActionType::dropoff:
-                // TODO print a message idk @suraj
                 RCLCPP_INFO(this->get_logger(), "Packages dropped off");
                 break;
             case ActionType::start:
-                // TODO print a message? @suraj
                 RCLCPP_INFO(this->get_logger(), "New job, moving to target location now");
                 status = JobStatus::ToPickup;
                 break;
             case ActionType::finish:
-                // TODO not sure. Print a message? @suraj
                 RCLCPP_INFO(this->get_logger(), "Job finished, remaining stationed");
                 break;
             default:
@@ -227,21 +215,14 @@ void TaskPlanner::timer_callback() {
 
         // The apriltag doesn't match the expected value
         if (status == JobStatus::ToPickup && station_id != pickup_station_id) {
-            // TODO log an error or abort idk @suraj
             RCLCPP_INFO(this->get_logger(), "Incorrect pickup location, task aborted");
         }
         if (status == JobStatus::ToDestination && station_id != dropoff_station_id) {
-            // TODO log an error or abort idk @suraj
             RCLCPP_INFO(this->get_logger(), "Incorrect dropoff location, task aborted");
         }
     }
 }
 
-bool TaskPlanner::get_visible_station_code(int &tag_id)
-{
-}
-
-void TaskPlanner::set_activation_state(bool state)
-{
+void TaskPlanner::set_activation_state(bool state) {
     this->is_active = state;
 }
