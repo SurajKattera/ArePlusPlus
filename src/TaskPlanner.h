@@ -27,6 +27,9 @@ private:
     void prep_next_order();  // < Adi
     bool load_locations_from_file();  // < Dinh, lmk if you want a hand here.
     bool get_visible_station_code(int& tag_id);  // < Dinh
+    
+    std::vector<NavNode> generatePathToStation(const Pose2d& destination);
+    
 
     // Other todo:
     // E-stop services
@@ -41,8 +44,6 @@ private:
     std::unordered_map<int, Station> station_locations;
     std::unordered_map<int, int> product_locations;  // Products are only allowed to be at stations
 
-    std::vector<NavNode> generatePathToStation(const Pose2d& destination);
-    
     bool is_active = false;  // Is the system allowed to perform operations
 
     int pickup_station_id = 0;

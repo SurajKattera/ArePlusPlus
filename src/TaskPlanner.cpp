@@ -21,6 +21,7 @@ TaskPlanner::TaskPlanner()
 }
 
 bool TaskPlanner::is_at_target(const Pose2d& target) {
+        RCLCPP_WARN(this->get_logger(), "Incomplete call to is_at_target()");
         // Jack, Thish here
         // You need to make sure both xy and yaw are within spec. 
         // If Nav2 is doing the movement, you need to check whether nav2 thinks its done. 
@@ -28,6 +29,7 @@ bool TaskPlanner::is_at_target(const Pose2d& target) {
         return false;
 }
 void TaskPlanner::nav2_go_to_point(const Pose2d& target) {
+        RCLCPP_WARN(this->get_logger(), "Incomplete call to nav2_go_to_point()");
         // Jack here
         // You need to interlock with the manual code to make sure only one is running at any one time.
         // The most recent one to have started gets priority
@@ -98,7 +100,8 @@ void TaskPlanner::prep_next_order() {
         dropoff_station_id = new_order.station_id;
         pickup_station_id = product_locations[new_order.product_id];
 }
-std::vector<NavNode> generatePathToStation(const Pose2d& destination) {
+
+std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d& destination) {
     std::vector<NavNode> path;
     path.push_back(NavNode(ActionType::start));
 
