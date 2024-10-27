@@ -22,9 +22,13 @@ public:
     std::pair<double, double> my_goal_point_;
     double tolerance_;
 
+    bool is_silent = true;
+    // TODO needs an estop function @suraj
+    void moveSetter(std::pair<double, double> my_point);
+    void moveSetter(std::pair<double, double> my_point, double distance_tolerance);
+
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);
-    void moveSetter(std::pair<double, double> my_point, double distance_to_point);
     bool moveIt();
     double quaternionToYaw(geometry_msgs::msg::Quaternion quat);
     void cmdSender(double angular_velocity, double linear_velocity);

@@ -22,9 +22,13 @@ find_package(tf2 REQUIRED)
 find_package(nav2_msgs REQUIRED)
 find_package(rclcpp_action REQUIRED)
 
+<<<<<<< HEAD
 
 
 add_executable(TaskHandler src/main.cpp src/Structures.h src/TaskPlanner.h src/TaskPlanner.cpp)
+=======
+add_executable(TaskHandler src/main.cpp src/Structures.h src/TaskPlanner.h src/TaskPlanner.cpp src/moving_node.h src/moving_node.cpp)
+>>>>>>> 6e1c1b51d15955a3bb725d2e04f84b3f9d8f5db5
 ament_target_dependencies(TaskHandler rclcpp nav2_msgs rclcpp_action tf2 nav_msgs std_msgs sensor_msgs geometry_msgs OpenCV cv_bridge)
 
 install(TARGETS
