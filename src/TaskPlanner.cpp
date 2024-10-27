@@ -1,7 +1,7 @@
 #include "TaskPlanner.h"
 
 TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
-    : Node("task_planner") {
+    : Node("task_planner"), is_manual_mode_{true}, is_nav2_mode_{false} {
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
@@ -32,6 +32,40 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
     // Jack here
     // You need to interlock with the manual code to make sure only one is running at any one time.
     // The most recent one to have started gets priority
+    // Check if currently in manual mode
+    if (is_manual_mode_) {
+        RCLCPP_INFO(this->get_logger(), "Switching from manual mode to Nav2 mode.");
+        // Here, you'd ideally stop the manual movement mode before continuing
+        is_manual_mode_ = false; // Set manual mode to false
+        is_nav2_mode_ = true;    // Set Nav2 mode to true
+    }
+
+    // Create the action client
+    auto action_client = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
+        this->shared_from_this(), "navigate_to_pose");
+
+    // Wait for the action server to be available
+    if (!action_client->wait_for_action_server(std::chrono::seconds(5))) {
+        RCLCPP_ERROR(this->get_logger(), "NavigateToPose action server not available after waiting");
+        return;
+    }
+
+    // Set up the goal with the target pose
+    nav2_msgs::action::NavigateToPose::Goal goal;
+    goal.pose.header.frame_id = "map";
+    goal.pose.pose.position.x = target.pos_x;
+    goal.pose.pose.position.y = target.pos_y;
+    goal.pose.pose.orientation.z = sin(target.yaw / 2.0);
+    goal.pose.pose.orientation.w = cos(target.yaw / 2.0);
+
+    // Send the goal to the action server
+    auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
+    send_goal_options.result_callback = [this](auto result) {
+        RCLCPP_INFO(this->get_logger(), "Navigation to target completed.");
+        is_nav2_mode_ = false;  // Reset Nav2 mode after completion
+    };
+    
+    action_client->async_send_goal(goal, send_goal_options);
 }
 
 void TaskPlanner::manual_go_to_point(const Pose2d &target) {
