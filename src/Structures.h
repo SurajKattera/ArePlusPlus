@@ -57,7 +57,7 @@ struct Order {
 
 struct NavNode {
     Pose2d pose;
-    bool is_manual_approach = false; 
+    bool is_manual_approach = true; 
     bool is_final_approach = false;
     ActionType action_type;
 

@@ -34,7 +34,7 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
     // moveSetter({1.0,2.0,2.0}); // delete
 }
 
-void MovingNode::moveSetter(Pose2d my_point) {
+void MovingNode::go_to_point(Pose2d my_point) {
     tolerance_ = 0.2;
     my_goal_point_.pos_x = my_point.pos_x;
     my_goal_point_.pos_y = my_point.pos_y;
@@ -42,7 +42,13 @@ void MovingNode::moveSetter(Pose2d my_point) {
     move_now_ = true;
 }
 
-
+void MovingNode::go_to_point(Pose2d my_point, double tolerance) {
+    tolerance_ = tolerance;
+    my_goal_point_.pos_x = my_point.pos_x;
+    my_goal_point_.pos_y = my_point.pos_y;
+    my_goal_point_.yaw = my_point.yaw;
+    move_now_ = true;
+}
 
 // int moveIt(std::pair<double, double> my_point, double distance_to_point, double my_offcourse_limit)
 bool MovingNode::moveIt() {

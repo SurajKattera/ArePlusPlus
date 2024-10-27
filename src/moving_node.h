@@ -25,8 +25,8 @@ public:
 
     bool is_silent = true;
     // TODO needs an estop function @suraj
-    void moveSetter(Pose2d my_point);
-    void moveSetter(Pose2d my_point, double distance_tolerance);
+    void go_to_point(Pose2d my_point);
+    void go_to_point(Pose2d my_point, double tolerance);
 
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);

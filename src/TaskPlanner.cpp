@@ -31,16 +31,12 @@ bool TaskPlanner::is_at_target(const Pose2d &target) {
     return false;
 }
 void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
-    RCLCPP_WARN(this->get_logger(), "Incomplete call to nav2_go_to_point()");
-    // Jack here
-    // You need to interlock with the manual code to make sure only one is running at any one time.
-    // The most recent one to have started gets priority
-    // Check if currently in manual mode
     if (is_manual_mode_) {
         RCLCPP_INFO(this->get_logger(), "Switching from manual mode to Nav2 mode.");
         // Here, you'd ideally stop the manual movement mode before continuing
         is_manual_mode_ = false; // Set manual mode to false
         is_nav2_mode_ = true;    // Set Nav2 mode to true
+        // TODO @thish you need to include code here to forcefully stop the manualmover code
     }
 
     // Create the action client
@@ -72,16 +68,13 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
 }
 
 void TaskPlanner::manual_go_to_point(const Pose2d &target) {
-    // Thish here
-    // You need to interlock with the nav2 code to make sure only one is running at any one time.
-    // The most recent one to have started gets priority
-    // Make yourself some tests for this to make sure it works
     if (is_nav2_mode_) {
         RCLCPP_INFO(this->get_logger(), "Switching from Nav2 mode to manual mode.");
-        // Here, you'd ideally stop the manual movement mode before continuing
-        is_manual_mode_ = true; // Set manual mode to false
-        is_nav2_mode_ = false;    // Set Nav2 mode to true
+        is_manual_mode_ = true; 
+        is_nav2_mode_ = false;   
+        // TODO @jack need code here to forcefully stop the nav2 function if it's still going
     }
+    manual_mover.go_to_point(target);
 }
 
 void TaskPlanner::prep_next_order() {
