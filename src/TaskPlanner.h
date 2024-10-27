@@ -71,7 +71,7 @@ private:
     const double yaw_tolerance = 0.1; // 5.7 degrees ish
 
 
-    MovingNode manual_mover = MovingNode();
+    std::shared_ptr<MovingNode> manual_mover;
     // Add the AR tag detector node as a member
     std::shared_ptr<ArtagDetectorNode> detector_node_;
 };

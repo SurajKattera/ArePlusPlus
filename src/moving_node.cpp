@@ -13,7 +13,7 @@ MovingNode::MovingNode() : Node("my_robot_mover"), state_(1) {
         "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
 
     timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(200),
+        std::chrono::milliseconds(100),
         std::bind(&MovingNode::moveIt, this)
     );
 }
@@ -37,6 +37,7 @@ void MovingNode::go_to_point(Pose2d my_point) {
     state_ = 1;
 }
 
+// This is not a duplicate function. Do not remove
 void MovingNode::go_to_point(Pose2d my_point, double tolerance) {
     tolerance_ = tolerance;
     my_goal_point_.pos_x = my_point.pos_x;

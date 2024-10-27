@@ -3,7 +3,10 @@
 TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     : Node("task_planner") {
     load_locations_from_file();
+    
     detector_node_ = std::make_shared<ArtagDetectorNode>();  // Initialize AR tag detector
+    manual_mover = std::make_shared<MovingNode>();
+    
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
@@ -72,6 +75,7 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
     // Wait for the action server to be available
     if (!action_client->wait_for_action_server(std::chrono::seconds(5))) {
         RCLCPP_ERROR(this->get_logger(), "NavigateToPose action server not available after waiting");
+        this->is_active = false;
         return;
     }
 
@@ -100,7 +104,7 @@ void TaskPlanner::manual_go_to_point(const Pose2d &target) {
         is_nav2_mode_ = false;   
         // TODO @jack need code here to forcefully stop the nav2 function if it's still going
     }
-    manual_mover.go_to_point(target);
+    manual_mover->go_to_point(target);
 }
 
 void TaskPlanner::prep_next_order() {
