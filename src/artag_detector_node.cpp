@@ -1,73 +1,103 @@
-#include "artag_detector_node.h"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "apriltag_msgs/msg/april_tag_detection_array.hpp"
+#include "cv_bridge/cv_bridge.h"
+#include "opencv2/opencv.hpp"
+#include "std_msgs/msg/int32.hpp"  // Include for publishing tag ID
 
-ArtagDetectorNode::ArtagDetectorNode() 
-    : Node("artag_detector_node") {
-    // Initialize subscriptions
-    image_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "/camera/image_raw", 10,
-        std::bind(&ArtagDetectorNode::image_callback, this, std::placeholders::_1));
+class ArtagDetectorNode : public rclcpp::Node {
+public:
+    ArtagDetectorNode() : Node("artag_detector_node") {
+        // Subscriptions
+        image_subscription_ = this->create_subscription<sensor_msgs::msg::Image>(
+            "/camera/image_raw", 10, 
+            std::bind(&ArtagDetectorNode::image_callback, this, std::placeholders::_1));
 
-    apriltag_subscription_ = this->create_subscription<apriltag_msgs::msg::AprilTagDetectionArray>(
-        "/detections", 10,
-        std::bind(&ArtagDetectorNode::apriltag_callback, this, std::placeholders::_1));
+        apriltag_subscription_ = this->create_subscription<apriltag_msgs::msg::AprilTagDetectionArray>(
+            "/detections", 10, 
+            std::bind(&ArtagDetectorNode::apriltag_callback, this, std::placeholders::_1));
 
-    RCLCPP_INFO(this->get_logger(), "ARTag detector node started.");
-}
+        // Publishers
+        image_publisher_ = this->create_publisher<sensor_msgs::msg::Image>("/camera/image_rect", 10);
+        tag_id_publisher_ = this->create_publisher<std_msgs::msg::Int32>("detected_tag_id", 10);  // Tag ID publisher
 
-void ArtagDetectorNode::image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
-    try {
-        current_image_ = cv_bridge::toCvCopy(msg, "bgr8")->image;
-    } catch (cv_bridge::Exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "CV Bridge error: %s", e.what());
-    }
-}
-
-void ArtagDetectorNode::apriltag_callback(const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
-    latest_detection_ = msg;  // Store the latest detections
-}
-
-bool ArtagDetectorNode::get_visible_station_code(int &tag_id) {
-    // Ensure we have a valid image and detection message
-    if (current_image_.empty()) {
-        RCLCPP_WARN(this->get_logger(), "No image available.");
-        return false;
+        RCLCPP_INFO(this->get_logger(), "ARTag detector node started.");
     }
 
-    if (!latest_detection_ || latest_detection_->detections.empty()) {
-        RCLCPP_INFO(this->get_logger(), "No AR tags detected.");
-        return false;
+private:
+    cv::Mat current_image_;  // Store the latest image
+
+    void image_callback(const sensor_msgs::msg::Image::SharedPtr msg) {
+        try {
+            // Convert ROS Image message to OpenCV image
+            current_image_ = cv_bridge::toCvCopy(msg, "bgr8")->image;
+
+            // Display the image
+            cv::imshow("TurtleBot Camera", current_image_);
+            cv::waitKey(1);
+
+            // Publish the image to /camera/image_rect
+            image_publisher_->publish(*msg);
+        } catch (cv_bridge::Exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "CV Bridge error: %s", e.what());
+        }
     }
 
-    // Use the first detected tag for simplicity
-    const auto &detection = latest_detection_->detections[0];
-    tag_id = detection.id;
+    void apriltag_callback(const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
+        if (current_image_.empty()) {
+            RCLCPP_WARN(this->get_logger(), "No image received yet.");
+            return;
+        }
 
-    RCLCPP_INFO(this->get_logger(), "Detected AR tag: ID = %d", tag_id);
+        if (msg->detections.empty()) {
+            RCLCPP_INFO(this->get_logger(), "No AR tags detected.");
+            return;
+        }
 
-    // Draw the detected tag on the image
-    draw_tag_on_image(detection);
+        // Process each detected tag
+        for (const auto& detection : msg->detections) {
+            std::vector<cv::Point> corners;
+            for (const auto& corner : detection.corners) {
+                corners.emplace_back(corner.x, corner.y);
+            }
 
-    // Display the annotated image (optional)
-    cv::imshow("Tag Detection", current_image_);
-    cv::waitKey(1);
+            // Draw lines between the corners
+            for (size_t i = 0; i < corners.size(); ++i) {
+                cv::line(current_image_, corners[i], corners[(i + 1) % corners.size()], 
+                         cv::Scalar(0, 255, 0), 2);  // Green lines
+            }
 
-    return true;
-}
+            // Display the tag ID at the center
+            cv::Point center(detection.centre.x, detection.centre.y);
+            cv::putText(current_image_, std::to_string(detection.id), center, 
+                        cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 255), 2);  // Red text
 
-void ArtagDetectorNode::draw_tag_on_image(const apriltag_msgs::msg::AprilTagDetection& detection) {
-    std::vector<cv::Point> corners;
-    for (const auto& corner : detection.corners) {
-        corners.emplace_back(corner.x, corner.y);
+            RCLCPP_INFO(this->get_logger(), "Detected AR tag: ID = %d", detection.id);
+
+            // Publish the detected tag ID
+            std_msgs::msg::Int32 tag_id_msg;
+            tag_id_msg.data = detection.id;
+            tag_id_publisher_->publish(tag_id_msg);
+        }
+
+        // Display the image with the wireframes
+        cv::imshow("TurtleBot Camera", current_image_);
+        cv::waitKey(1);
     }
 
-    // Draw lines between the corners
-    for (size_t i = 0; i < corners.size(); ++i) {
-        cv::line(current_image_, corners[i], corners[(i + 1) % corners.size()],
-                 cv::Scalar(0, 255, 0), 2);  // Green lines
-    }
+    // Subscriptions
+    rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_subscription_;
+    rclcpp::Subscription<apriltag_msgs::msg::AprilTagDetectionArray>::SharedPtr apriltag_subscription_;
 
-    // Display the tag ID at the center
-    cv::Point center(detection.centre.x, detection.centre.y);
-    cv::putText(current_image_, std::to_string(detection.id), center,
-                cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 255), 2);  // Red text
+    // Publishers
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr tag_id_publisher_;  // Publisher for tag ID
+};
+
+int main(int argc, char* argv[]) {
+    rclcpp::init(argc, argv);
+    rclcpp::spin(std::make_shared<ArtagDetectorNode>());
+    rclcpp::shutdown();
+    return 0;
 }
