@@ -22,6 +22,8 @@ public:
     std::pair<double, double> my_goal_point_;
     double tolerance_;
 
+    bool is_silent = true;
+
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);
     void moveSetter(std::pair<double, double> my_point, double distance_to_point);

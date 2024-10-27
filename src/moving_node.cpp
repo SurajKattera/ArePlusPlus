@@ -29,7 +29,9 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
     odometry_ = local_odom_msg;
     quaternionToYaw(local_odom_msg.pose.pose.orientation);
 
-    std::cout << "OD " << odometry_.twist.twist.angular.z << std::endl;
+    if (!this->is_silent) {
+        RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
+}
 }
 
 void MovingNode::moveSetter(std::pair<double, double> my_point, double distance_to_point) {
@@ -68,22 +70,23 @@ bool MovingNode::moveIt() {
 
     // while(!(std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal.first)) <= tolerance && std::fabs(std::abs(odometry_.pose.pose.position.y- my_goal.second)) <= tolerance)){
 
-    if((std::abs(odometry_.pose.pose.position.x - my_goal_point_.first) > tolerance_ && 
-        std::abs(odometry_.pose.pose.position.y - my_goal_point_.second) > tolerance_ && 
+    if((std::abs(odometry_.pose.pose.position.x - my_goal_point_.first) > tolerance_ &&
+        std::abs(odometry_.pose.pose.position.y - my_goal_point_.second) > tolerance_ &&
         move_now_ == true)) {
 
-        if((std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal_point_.first)) <= safe_stop && 
+        if((std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal_point_.first)) <= safe_stop &&
             std::fabs(std::abs(odometry_.pose.pose.position.y - my_goal_point_.second)) <= safe_stop)) {
             move_f_b = 0.05;
             turn_l_r = 0.04;
             epsilon = 0.03;
         }
 
-        std::cout << "-----------------------------------" << my_goal_point_.first << "    " << my_goal_point_.second << std::endl;
-        
+        if (!this->is_silent) {
+            RCLCPP_INFO(this->get_logger(), "-----------------------------------%.2f    %.2f", my_goal_point_.first, my_goal_point_.second);
+        }
         // std::cout << "Speed-----------------------------------" << odometry_.twist.twist.linear.x << "    " << odometry_.twist.twist.linear.y << std::endl;
 
-        double desired_ang = atan2((my_goal_point_.second - odometry_.pose.pose.position.y), 
+        double desired_ang = atan2((my_goal_point_.second - odometry_.pose.pose.position.y),
                                    (my_goal_point_.first - odometry_.pose.pose.position.x));
 
         // These two lines are for turning clockwise and anticlockwise according to the position
@@ -118,12 +121,14 @@ bool MovingNode::moveIt() {
     else {
         // Send a last command to stop the Turtlebot from moving
         cmdSender(0,0);
+        if (!this->is_silent) {
         RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.first,  my_goal_point_.second);
+    }
         // move_now_ = false;
         my_goal_point_ = {2.0, 5.0};
         return true;
-    }
-    
+}
+
         return false;
 }
 
