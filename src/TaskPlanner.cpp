@@ -256,9 +256,7 @@ bool TaskPlanner::get_visible_station_code(int& tag_id) {
     // // Display the captured image (optional)
     // cv::imshow("Current Camera Image", current_image);
     // cv::waitKey(1);
-    // // @dinh don't do this, it spams up the desktop when running. Post to an image topic if you must.
-    // // LLMs will do this if you don't tell them otherwise
-
+    
     // // Attempt to get tag detection data
     // auto detection_msg = rclcpp::wait_for_message<apriltag_msgs::msg::AprilTagDetectionArray>("/detections", shared_from_this());
     // if (!detection_msg || detection_msg->detections.empty()) {
