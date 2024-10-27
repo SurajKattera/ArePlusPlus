@@ -12,6 +12,11 @@
 #include <queue>
 #include "Structures.h"
 #include "moving_node.h"
+#include "sensor_msgs/msg/image.hpp" // For AR tag detection
+#include "sensor_msgs/msg/camera_info.hpp" // For AR tag detection
+#include "apriltag_msgs/msg/april_tag_detection_array.hpp" // For AR tag detection
+#include "cv_bridge/cv_bridge.h" // For AR tag detection
+#include "opencv2/opencv.hpp" // For AR tag detection
 
 class TaskPlanner : public rclcpp::Node {
 public:
