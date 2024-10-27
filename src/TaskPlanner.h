@@ -53,9 +53,12 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     std::unordered_map<int, Station> station_locations;
     std::unordered_map<int, int> product_locations; // Products are only allowed to be at stations
-    std::atomic<bool> is_manual_mode_;
-    std::atomic<bool> is_nav2_mode_;
+    
+    std::atomic<bool> is_manual_mode_ = true;
+    std::atomic<bool> is_nav2_mode_ = false;
+
     bool is_active = false; // Is the system allowed to perform operations
+    bool debug_enable_logging = true;  // Is the system allowed to print debug messages
     
     int pickup_station_id = 0;
     int dropoff_station_id = 0;

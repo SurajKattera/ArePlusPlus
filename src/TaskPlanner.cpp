@@ -1,7 +1,7 @@
 #include "TaskPlanner.h"
 
 TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
-    : Node("task_planner"), is_manual_mode_{true}, is_nav2_mode_{false} {
+    : Node("task_planner") {
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
@@ -73,6 +73,12 @@ void TaskPlanner::manual_go_to_point(const Pose2d &target) {
     // You need to interlock with the nav2 code to make sure only one is running at any one time.
     // The most recent one to have started gets priority
     // Make yourself some tests for this to make sure it works
+    if (is_nav2_mode_) {
+        RCLCPP_INFO(this->get_logger(), "Switching from Nav2 mode to manual mode.");
+        // Here, you'd ideally stop the manual movement mode before continuing
+        is_manual_mode_ = true; // Set manual mode to false
+        is_nav2_mode_ = false;    // Set Nav2 mode to true
+    }
 }
 
 void TaskPlanner::prep_next_order() {
@@ -196,12 +202,13 @@ std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d &destinatio
     destination_node.is_final_approach = true;  // Ensure this is marked as the final approach
     path.push_back(destination_node);
 
-
-    RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
-                destination.pos_x, destination.pos_y, destination.yaw);
-    for (const auto& node : path) {
-        RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
-                    node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
+    if (this->debug_enable_logging) {
+        RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
+                    destination.pos_x, destination.pos_y, destination.yaw);
+        for (const auto& node : path) {
+            RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
+                        node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
+        }
     }
 
     return path;
@@ -249,11 +256,13 @@ bool TaskPlanner::get_visible_station_code(int& tag_id) {
     // // Display the captured image (optional)
     // cv::imshow("Current Camera Image", current_image);
     // cv::waitKey(1);
+    // // @dinh don't do this, it spams up the desktop when running. Post to an image topic if you must.
+    // // LLMs will do this if you don't tell them otherwise
 
     // // Attempt to get tag detection data
     // auto detection_msg = rclcpp::wait_for_message<apriltag_msgs::msg::AprilTagDetectionArray>("/detections", shared_from_this());
     // if (!detection_msg || detection_msg->detections.empty()) {
-    //     //RCLCPP_INFO(this->get_logger(), "No AR tags detected.");
+    //     //RCLCPP_INFO(this->get_logger(), "No AR tags detected.");  // This is a debug message at best, don't put this in as it will spam the console
     //     return false;  // No tags detected
     // }
 
@@ -327,7 +336,7 @@ void TaskPlanner::timer_callback() {
                 }
                 else {
                     // TODO @suraj Print a more descriptive error message, not error. This should not trigger, implies the job wasn't reset, or somehow had more than 4 phases
-                    RCLCPP_INFO(this->get_logger(), "ERROR");
+                    RCLCPP_WARN(this->get_logger(), "ERROR");
                 }
                 break;
             case ActionType::pickup:
@@ -357,10 +366,12 @@ void TaskPlanner::timer_callback() {
 
         // The apriltag doesn't match the expected value
         if (status == JobStatus::ToPickup && station_id != pickup_station_id) {
-            RCLCPP_INFO(this->get_logger(), "Incorrect pickup location, task aborted");
+            RCLCPP_WARN(this->get_logger(), "Incorrect pickup location, task aborted");
+            // TODO actually abort here
         }
         if (status == JobStatus::ToDestination && station_id != dropoff_station_id) {
-            RCLCPP_INFO(this->get_logger(), "Incorrect dropoff location, task aborted");
+            RCLCPP_WARN(this->get_logger(), "Incorrect dropoff location, task aborted");
+            // TODO actually abort here
         }
     }
 }
