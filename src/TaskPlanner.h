@@ -53,7 +53,7 @@ private:
     int package_id = 0;
     JobStatus status = JobStatus::Idle;
 
-
+    MovingNode manual_mover = MovingNode();
 };
 
 #endif // TASK_PLANNER_H

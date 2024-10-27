@@ -31,11 +31,18 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
 
     if (!this->is_silent) {
         RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
-}
+    }
 }
 
-void MovingNode::moveSetter(std::pair<double, double> my_point, double distance_to_point) {
-    tolerance_ = distance_to_point;
+void MovingNode::moveSetter(std::pair<double, double> my_point) {
+    tolerance_ = 0.2;
+    my_goal_point_.first = my_point.first;
+    my_goal_point_.second = my_point.second;
+    move_now_ = true;
+}
+
+void MovingNode::moveSetter(std::pair<double, double> my_point, double distance_tolerance) {
+    tolerance_ = distance_tolerance;
     my_goal_point_.first = my_point.first;
     my_goal_point_.second = my_point.second;
     move_now_ = true;
