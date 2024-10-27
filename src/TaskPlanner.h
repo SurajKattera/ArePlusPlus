@@ -11,9 +11,9 @@
 #include <unordered_map>
 #include <queue>
 #include "Structures.h"
+#include "moving_node.h"
 
-class TaskPlanner : public rclcpp::Node
-{
+class TaskPlanner : public rclcpp::Node {
 public:
     TaskPlanner(std::vector<std::pair<int, int>> initial_tasks);
     TaskPlanner();
@@ -52,6 +52,8 @@ private:
     int dropoff_station_id = 0;
     int package_id = 0;
     JobStatus status = JobStatus::Idle;
+
+
 };
 
 #endif // TASK_PLANNER_H
