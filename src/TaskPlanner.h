@@ -13,6 +13,8 @@
 #include <queue>
 #include "Structures.h"
 #include "moving_node.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h> 
 #include "artag_detector_node.h"  // Include the AR tag detector node
 
 class TaskPlanner : public rclcpp::Node {
@@ -27,6 +29,7 @@ public:
 
 private:
     void timer_callback(); // This one gets to do the main logic
+    void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
     // These need to be implemented & doxygened
     bool is_at_target(const Pose2d &target);       // < Thish
@@ -49,7 +52,10 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     std::unordered_map<int, Station> station_locations;
     std::unordered_map<int, int> product_locations; // Products are only allowed to be at stations
-    
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
+
+    Pose2d current_pose_;
+
     std::atomic<bool> is_manual_mode_ = true;
     std::atomic<bool> is_nav2_mode_ = false;
 
@@ -60,6 +66,10 @@ private:
     int dropoff_station_id = 0;
     int package_id = 0;
     JobStatus status = JobStatus::Idle;
+
+    const double xy_tolerance = 0.1;  // 10 cm position
+    const double yaw_tolerance = 0.1; // 5.7 degrees ish
+
 
     MovingNode manual_mover = MovingNode();
     // Add the AR tag detector node as a member

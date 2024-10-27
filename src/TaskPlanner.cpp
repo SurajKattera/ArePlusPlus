@@ -2,11 +2,14 @@
 
 TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     : Node("task_planner") {
-    
+    load_locations_from_file();
     detector_node_ = std::make_shared<ArtagDetectorNode>();  // Initialize AR tag detector
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
+
+    odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
 
     for (auto task : initial_tasks) {
         Order order(task.first, task.second);
@@ -20,16 +23,39 @@ TaskPlanner::TaskPlanner()
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
+
+    odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
+}
+
+void TaskPlanner::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
+    current_pose_.pos_x = msg->pose.pose.position.x;
+    current_pose_.pos_y = msg->pose.pose.position.y;
+    
+    tf2::Quaternion q(
+        msg->pose.pose.orientation.x,
+        msg->pose.pose.orientation.y,
+        msg->pose.pose.orientation.z,
+        msg->pose.pose.orientation.w);
+    tf2::Matrix3x3 m(q);
+    
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    current_pose_.yaw = yaw;
 }
 
 bool TaskPlanner::is_at_target(const Pose2d &target) {
-    RCLCPP_WARN(this->get_logger(), "Incomplete call to is_at_target()");
-    // Jack, Thish here
-    // You need to make sure both xy and yaw are within spec.
-    // If Nav2 is doing the movement, you need to check whether nav2 thinks its done.
-    //        This will involve using a callback, and doing error handling on the callback. See the older code for a reference.
-    return false;
+    
+    double dx = std::abs(current_pose_.pos_x - target.pos_x);
+    double dy = std::abs(current_pose_.pos_y - target.pos_y);
+    double dyaw = std::abs(current_pose_.yaw - target.yaw);
+
+    while (dyaw > M_PI) dyaw -= 2 * M_PI;
+    dyaw = std::abs(dyaw);
+
+    return (dx <= xy_tolerance) && (dy <= xy_tolerance) && (dyaw <= yaw_tolerance);
 }
+
 void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
     if (is_manual_mode_) {
         RCLCPP_INFO(this->get_logger(), "Switching from manual mode to Nav2 mode.");
@@ -101,25 +127,25 @@ void TaskPlanner::prep_next_order() {
         current_job_points_.pop();
     }
 
-    auto pathCtoA = station_locations[product_locations[new_order.product_id]].path;
-    auto pathCtoB = station_locations[new_order.station_id].path;
+    auto center_to_pickup = station_locations[product_locations[new_order.product_id]].path;
+    auto center_to_dropoff = station_locations[new_order.station_id].path;
 
-    if (pathCtoA.empty()) {
-        RCLCPP_WARN(this->get_logger(), "Warning: pathCtoA is empty!");
-        assert(!pathCtoA.empty() && "pathCtoA must have at least one element");
+    if (center_to_pickup.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Warning: center_to_pickup is empty!");
+        assert(!center_to_pickup.empty() && "center_to_pickup must have at least one element");
         return;
     }
 
-    if (pathCtoB.empty()) {
-        RCLCPP_WARN(this->get_logger(), "Warning: pathCtoB is empty!");
-        assert(!pathCtoB.empty() && "pathCtoB must have at least one element");
+    if (center_to_dropoff.empty()) {
+        RCLCPP_WARN(this->get_logger(), "Warning: center_to_dropoff is empty!");
+        assert(!center_to_dropoff.empty() && "center_to_dropoff must have at least one element");
         return;
     }
 
     NavNode node(ActionType::start);
     current_job_points_.push(node);
 
-    for (const auto &point : pathCtoA) {
+    for (auto point : center_to_pickup) {
         current_job_points_.push(point);
     }
 
@@ -128,14 +154,14 @@ void TaskPlanner::prep_next_order() {
     node.action_type = ActionType::advance_state;
     current_job_points_.push(node);
 
-    for (auto it = pathCtoA.rbegin() + 1; it != pathCtoA.rend(); ++it) {
+    for (auto it = center_to_pickup.rbegin() + 1; it != center_to_pickup.rend(); ++it) {
         current_job_points_.push(*it);
     }
 
     node.action_type = ActionType::advance_state;
     current_job_points_.push(node);
 
-    for (const auto &point : pathCtoB) {
+    for (auto point : center_to_dropoff) {
         current_job_points_.push(point);
     }
 
@@ -144,7 +170,7 @@ void TaskPlanner::prep_next_order() {
     node.action_type = ActionType::advance_state;
     current_job_points_.push(node);
 
-    for (auto it = pathCtoB.rbegin() + 1; it != pathCtoB.rend(); ++it) {
+    for (auto it = center_to_dropoff.rbegin() + 1; it != center_to_dropoff.rend(); ++it) {
         current_job_points_.push(*it);
     }
 
@@ -228,10 +254,10 @@ bool TaskPlanner::load_locations_from_file() {
     station_locations[-3] = Station(-3, Pose2d(2, 2, 0), generatePathToStation(Pose2d(2, 2, 0)));
     station_locations[-4] = Station(-4, Pose2d(2, -1, 0), generatePathToStation(Pose2d(2, -1, 0)));
 
-    product_locations[1] = 1;
-    product_locations[2] = 2;
-    product_locations[3] = 4;
-    product_locations[4] = 4;
+    product_locations[1] = -1;
+    product_locations[2] = -2;
+    product_locations[3] = -3;
+    product_locations[4] = -4;
 
     return true;
 }

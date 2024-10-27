@@ -23,7 +23,7 @@ public:
     Pose2d my_goal_point_;
     double tolerance_;
 
-    bool is_silent = true;
+    bool is_silent = false;
     // TODO needs an estop function @suraj
     void go_to_point(Pose2d my_point);
     void go_to_point(Pose2d my_point, double tolerance);
