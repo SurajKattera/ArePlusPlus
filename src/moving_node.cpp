@@ -6,11 +6,11 @@
 
 MovingNode::MovingNode() : Node("my_robot_mover"), state_(1) {
     // Subscribe for the Lcommand for vel
-        cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
     // Subscribe to Odometry
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-            "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
+    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+        "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
 
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(200),
@@ -54,60 +54,60 @@ bool MovingNode::moveIt() {
     double move_f_b = 1.0; // This is the throttle
     double epsilon = 0.1; // Angular error
     
-        if((std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x)) <= safe_stop &&
-            std::fabs(std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y)) <= safe_stop)) {
-            move_f_b = 0.05;
-            turn_l_r = 0.04;
-            epsilon = 0.03;
-        }
+    if((std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x)) <= safe_stop &&
+        std::fabs(std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y)) <= safe_stop)) {
+        move_f_b = 0.05;
+        turn_l_r = 0.04;
+        epsilon = 0.03;
+    }
 
-        double desired_ang = atan2((my_goal_point_.pos_y - odometry_.pose.pose.position.y),
-                                   (my_goal_point_.pos_x - odometry_.pose.pose.position.x));
+    double desired_ang = atan2((my_goal_point_.pos_y - odometry_.pose.pose.position.y),
+                                (my_goal_point_.pos_x - odometry_.pose.pose.position.x));
 
-        // These two lines are for turning clockwise and anticlockwise according to the position
-        if(desired_ang - odometry_yaw_ > 0) turn_l_r = std::abs(turn_l_r);
-        else if(desired_ang - odometry_yaw_ < 0) turn_l_r = -turn_l_r;
+    // These two lines are for turning clockwise and anticlockwise according to the position
+    if(desired_ang - odometry_yaw_ > 0) turn_l_r = std::abs(turn_l_r);
+    else if(desired_ang - odometry_yaw_ < 0) turn_l_r = -turn_l_r;
 
-        // Main state machine for rotating and moving linearly
-        switch(state_) {
-            case 1:
-                    cmdSender(turn_l_r, 0);
-                if((std::abs(desired_ang - odometry_yaw_) <= epsilon)) {
-                    state_ = 2;
-                }
-            break;
-            case 2:
-                cmdSender(0, move_f_b);
+    // Main state machine for rotating and moving linearly
+    switch(state_) {
+        case 1:
+                cmdSender(turn_l_r, 0);
+            if((std::abs(desired_ang - odometry_yaw_) <= epsilon)) {
+                state_ = 2;
+            }
+        break;
+        case 2:
+            cmdSender(0, move_f_b);
 
-                if((std::abs(desired_ang - odometry_yaw_) > epsilon)) {
-                    state_ = 1;
-                }
-                if(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x) < tolerance_ &&
-                std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y) < tolerance_){
-                    state_ = 3;
-                }
-            break;
-            case 3:
-                if(my_goal_point_.yaw - odometry_yaw_ > 0) turn_desired = std::abs(turn_desired);
-                else if(my_goal_point_.yaw - odometry_yaw_ < 0) turn_desired = -turn_desired;
-                
-                cmdSender(turn_desired, 0);
+            if((std::abs(desired_ang - odometry_yaw_) > epsilon)) {
+                state_ = 1;
+            }
+            if(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x) < tolerance_ &&
+            std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y) < tolerance_){
+                state_ = 3;
+            }
+        break;
+        case 3:
+            if(my_goal_point_.yaw - odometry_yaw_ > 0) turn_desired = std::abs(turn_desired);
+            else if(my_goal_point_.yaw - odometry_yaw_ < 0) turn_desired = -turn_desired;
+            
+            cmdSender(turn_desired, 0);
 
-                if(std::abs(my_goal_point_.yaw - odometry_yaw_) < 0.2){
-                    cmdSender(0,0);
-                    move_now_ = false;
-                    state_ = 4;
-                }
+            if(std::abs(my_goal_point_.yaw - odometry_yaw_) < 0.2){
+                cmdSender(0,0);
+                move_now_ = false;
+                state_ = 4;
+            }
 
-            break;
-            case 4:
-                if (!this->is_silent) {
-                    RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
-                }
-            return true;
-            break;
-        }
-        return false;
+        break;
+        case 4:
+            if (!this->is_silent) {
+                RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
+            }
+        return true;
+        break;
+    }
+    return false;
 }
 
 double MovingNode::quaternionToYaw(geometry_msgs::msg::Quaternion quat) {
