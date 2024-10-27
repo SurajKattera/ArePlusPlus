@@ -4,7 +4,7 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     : Node("task_planner") {
     load_locations_from_file();
     
-    detector_node_ = std::make_shared<ArtagDetectorNode>();  // Initialize AR tag detector
+    
     manual_mover = std::make_shared<MovingNode>();
     
     timer_ = this->create_wall_timer(
@@ -13,6 +13,10 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
 
     odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
+        
+    // Initialize subscription to /detected_tag_id
+    tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
+        "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
 
     for (auto task : initial_tasks) {
         Order order(task.first, task.second);
@@ -22,13 +26,16 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
 
 TaskPlanner::TaskPlanner()
     : Node("task_planner") {
-    detector_node_ = std::make_shared<ArtagDetectorNode>();  // Initialize AR tag detector 
+     
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
 
     odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
+        // Initialize subscription to /detected_tag_id
+    tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
+        "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
 }
 
 void TaskPlanner::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -266,9 +273,23 @@ bool TaskPlanner::load_locations_from_file() {
     return true;
 }
 
+void TaskPlanner::tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg) {
+    RCLCPP_INFO(this->get_logger(), "Received tag ID: %d", msg->data);
+    latest_detected_tag_ = msg->data;  // Store the detected tag ID
+}
+
+
 //ros2 run apriltag_ros apriltag_node --ros-args   -r image_rect:=/camera/image_raw   -r camera_info:=/camera/camera_info   -p family:=36h11   -p size:=0.5   -p max_hamming:=0
 bool TaskPlanner::get_visible_station_code(int& tag_id) {
-    return detector_node_->get_visible_station_code(tag_id);
+    if (latest_detected_tag_) {  // Check if a tag ID was detected
+        tag_id = *latest_detected_tag_;  // Dereference the optional value
+        RCLCPP_INFO(this->get_logger(), "Detected station tag ID: %d", tag_id);
+        latest_detected_tag_.reset();  // Clear the stored tag after using it
+        return true;
+    } else {
+        RCLCPP_WARN(this->get_logger(), "No station tag detected.");
+        return false;
+    }
 };
 
 void TaskPlanner::timer_callback() {
