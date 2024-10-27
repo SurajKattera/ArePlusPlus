@@ -1,8 +1,10 @@
 # How to run the AprilTag detection
 
+
 Requirements:
 ```
 sudo apt update
+sudo apt install ros-humble-apriltag-msgs
 cd ~/ros2_ws/src
 git clone https://github.com/christianrauch/apriltag_ros
 git clone https://github.com/AprilRobotics/apriltag.git  # Core library
@@ -11,8 +13,7 @@ colcon build
 source install/setup.bash
 ```
  
-Install the apriltag-msgs
-`sudo apt install ros-humble-apriltag-msgs`
+
 
 In one terminal: 
 
