@@ -26,11 +26,22 @@ find_package(apriltag_msgs REQUIRED)
 
 add_executable(TaskHandler src/main.cpp src/Structures.h 
 src/TaskPlanner.h src/TaskPlanner.cpp src/moving_node.h 
-src/moving_node.cpp src/artag_detector_node.cpp src/artag_detector_node.h)
+src/moving_node.cpp)
+# ARTagDetectorNode executable
+add_executable(artag_detector_node src/artag_detector_node.cpp)
+
 
 ament_target_dependencies(TaskHandler rclcpp nav2_msgs 
 rclcpp_action tf2 nav_msgs std_msgs sensor_msgs geometry_msgs 
 OpenCV cv_bridge apriltag_msgs)
+ament_target_dependencies(artag_detector_node 
+    rclcpp 
+    std_msgs 
+    sensor_msgs 
+    cv_bridge 
+    OpenCV 
+    apriltag_msgs
+)
 
 install(TARGETS
   TaskHandler
