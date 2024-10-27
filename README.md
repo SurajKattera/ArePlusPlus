@@ -4,7 +4,7 @@ Requirements:
 ```
 sudo apt update
 cd ~/ros2_ws/src
-git clone https://github.com/AprilRobotics/apriltag_ros.git
+git clone https://github.com/christianrauch/apriltag_ros
 git clone https://github.com/AprilRobotics/apriltag.git  # Core library
 cd ~/ros2_ws
 colcon build
