@@ -228,6 +228,11 @@ bool TaskPlanner::load_locations_from_file() {
     station_locations[-3] = Station(-3, Pose2d(2, 2, 0), generatePathToStation(Pose2d(2, 2, 0)));
     station_locations[-4] = Station(-4, Pose2d(2, -1, 0), generatePathToStation(Pose2d(2, -1, 0)));
 
+    product_locations[1] = 1;
+    product_locations[2] = 2;
+    product_locations[3] = 4;
+    product_locations[4] = 4;
+
     return true;
 }
 
