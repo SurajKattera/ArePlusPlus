@@ -26,7 +26,7 @@ find_package(apriltag_msgs REQUIRED)
 
 add_executable(TaskHandler src/main.cpp src/Structures.h 
 src/TaskPlanner.h src/TaskPlanner.cpp src/moving_node.h 
-src/moving_node.cpp)
+src/moving_node.cpp src/artag_detector_node.cpp src/artag_detector_node.h)
 
 ament_target_dependencies(TaskHandler rclcpp nav2_msgs 
 rclcpp_action tf2 nav_msgs std_msgs sensor_msgs geometry_msgs 
