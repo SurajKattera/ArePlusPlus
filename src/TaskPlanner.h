@@ -15,7 +15,7 @@
 #include "moving_node.h"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h> 
-#include "artag_detector_node.h"  // Include the AR tag detector node
+
 
 class TaskPlanner : public rclcpp::Node {
 public:
@@ -72,8 +72,10 @@ private:
 
 
     std::shared_ptr<MovingNode> manual_mover;
-    // Add the AR tag detector node as a member
-    std::shared_ptr<ArtagDetectorNode> detector_node_;
+    
+    void tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg);  // Declare tag_id_callback
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr tag_id_subscription_;  // Subscription for tag ID
+    std::optional<int> latest_detected_tag_;  // Store the latest detected tag ID (optional to handle no detection)
 };
 
 #endif // TASK_PLANNER_H
