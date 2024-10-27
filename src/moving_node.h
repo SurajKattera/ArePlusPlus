@@ -6,6 +6,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <cmath>
 #include <utility>
+#include "Structures.h"
 
 class MovingNode : public rclcpp::Node {
 public:
@@ -19,13 +20,13 @@ public:
     double odometry_yaw_;
     int state_;
     bool move_now_;
-    std::pair<double, double> my_goal_point_;
+    Pose2d my_goal_point_;
     double tolerance_;
 
     bool is_silent = true;
     // TODO needs an estop function @suraj
-    void moveSetter(std::pair<double, double> my_point);
-    void moveSetter(std::pair<double, double> my_point, double distance_tolerance);
+    void moveSetter(Pose2d my_point);
+    void moveSetter(Pose2d my_point, double distance_tolerance);
 
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);

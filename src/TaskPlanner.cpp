@@ -230,60 +230,59 @@ bool TaskPlanner::load_locations_from_file() {
 
 //ros2 run apriltag_ros apriltag_node --ros-args   -r image_rect:=/camera/image_raw   -r camera_info:=/camera/camera_info   -p family:=36h11   -p size:=0.5   -p max_hamming:=0
 bool TaskPlanner::get_visible_station_code(int& tag_id) {
-    // Attempt to get an image from the camera
-    auto image_msg = rclcpp::wait_for_message<sensor_msgs::msg::Image>("/camera/image_raw", shared_from_this());
-    if (!image_msg) {
-        RCLCPP_WARN(this->get_logger(), "Failed to get image from /camera/image_raw.");
-        return false;  // No image available
-    }
+    // // Attempt to get an image from the camera
+    // auto image_msg = rclcpp::wait_for_message<sensor_msgs::msg::Image>("/camera/image_raw", shared_from_this());
+    // if (!image_msg) {
+    //     RCLCPP_WARN(this->get_logger(), "Failed to get image from /camera/image_raw.");
+    //     return false;  // No image available
+    // }
 
-    // Convert the ROS image to an OpenCV Mat
-    cv::Mat current_image;
-    try {
-        current_image = cv_bridge::toCvCopy(image_msg, "bgr8")->image;
-    } catch (cv_bridge::Exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "CV Bridge error: %s", e.what());
-        return false;  // Conversion failed
-    }
+    // // Convert the ROS image to an OpenCV Mat
+    // cv::Mat current_image;
+    // try {
+    //     current_image = cv_bridge::toCvCopy(image_msg, "bgr8")->image;
+    // } catch (cv_bridge::Exception& e) {
+    //     RCLCPP_ERROR(this->get_logger(), "CV Bridge error: %s", e.what());
+    //     return false;  // Conversion failed
+    // }
 
-    // Display the captured image (optional)
-    cv::imshow("Current Camera Image", current_image);
-    cv::waitKey(1);
+    // // Display the captured image (optional)
+    // cv::imshow("Current Camera Image", current_image);
+    // cv::waitKey(1);
 
-    // Attempt to get tag detection data
-    auto detection_msg = rclcpp::wait_for_message<apriltag_msgs::msg::AprilTagDetectionArray>(
-        "/detections", shared_from_this());
-    if (!detection_msg || detection_msg->detections.empty()) {
-        RCLCPP_INFO(this->get_logger(), "No AR tags detected.");
-        return false;  // No tags detected
-    }
+    // // Attempt to get tag detection data
+    // auto detection_msg = rclcpp::wait_for_message<apriltag_msgs::msg::AprilTagDetectionArray>("/detections", shared_from_this());
+    // if (!detection_msg || detection_msg->detections.empty()) {
+    //     //RCLCPP_INFO(this->get_logger(), "No AR tags detected.");
+    //     return false;  // No tags detected
+    // }
 
-    // Use the first detected tag
-    const auto& detection = detection_msg->detections[0];
-    tag_id = detection.id;  // Update the tag_id with the detected tag's ID
+    // // Use the first detected tag
+    // const auto& detection = detection_msg->detections[0];
+    // tag_id = detection.id;  // Update the tag_id with the detected tag's ID
 
-    RCLCPP_INFO(this->get_logger(), "Detected AR tag: ID = %d", tag_id);
+    // RCLCPP_INFO(this->get_logger(), "Detected AR tag: ID = %d", tag_id);
 
-    // Optionally draw the detected tag on the image
-    std::vector<cv::Point> corners;
-    for (const auto& corner : detection.corners) {
-        corners.emplace_back(corner.x, corner.y);
-    }
-    for (size_t i = 0; i < corners.size(); ++i) {
-        cv::line(current_image, corners[i], corners[(i + 1) % corners.size()], 
-                 cv::Scalar(0, 255, 0), 2);  // Green lines
-    }
+    // // Optionally draw the detected tag on the image
+    // std::vector<cv::Point> corners;
+    // for (const auto& corner : detection.corners) {
+    //     corners.emplace_back(corner.x, corner.y);
+    // }
+    // for (size_t i = 0; i < corners.size(); ++i) {
+    //     cv::line(current_image, corners[i], corners[(i + 1) % corners.size()], 
+    //              cv::Scalar(0, 255, 0), 2);  // Green lines
+    // }
 
-    // Display the tag ID on the image
-    cv::Point center(detection.centre.x, detection.centre.y);
-    cv::putText(current_image, std::to_string(tag_id), center, 
-                cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 255), 2);  // Red text
+    // // Display the tag ID on the image
+    // cv::Point center(detection.centre.x, detection.centre.y);
+    // cv::putText(current_image, std::to_string(tag_id), center, 
+    //             cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 255), 2);  // Red text
 
-    // Display the final annotated image (optional)
-    cv::imshow("Tag Detection", current_image);
-    cv::waitKey(1);
+    // // Display the final annotated image (optional)
+    // cv::imshow("Tag Detection", current_image);
+    // cv::waitKey(1);
 
-    return true;  // Tag successfully detected
+    // return true;  // Tag successfully detected
 };
 
 void TaskPlanner::timer_callback() {

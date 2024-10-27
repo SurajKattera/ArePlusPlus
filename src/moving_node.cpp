@@ -17,9 +17,6 @@ MovingNode::MovingNode() : Node("my_robot_mover"), state_(1) {
         std::chrono::milliseconds(200),
         std::bind(&MovingNode::moveIt, this)
     );
-
-    
-    
 }
 
 void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
@@ -31,9 +28,9 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
     odometry_ = local_odom_msg;
     quaternionToYaw(local_odom_msg.pose.pose.orientation);
 
-    // if (!this->is_silent) {
-    //     RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
-    // }
+    if (!this->is_silent) {
+         RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
+    }
     // moveSetter({1.0,2.0,2.0}); // delete
 }
 
@@ -49,13 +46,7 @@ void MovingNode::moveSetter(Pose2d my_point) {
 
 // int moveIt(std::pair<double, double> my_point, double distance_to_point, double my_offcourse_limit)
 bool MovingNode::moveIt() {
-    
-
-    
-
-
-
-    // double distance_to_point = 0.1;
+      // double distance_to_point = 0.1;
     double safe_stop = 0.03;
 
     // double tolerance = distance_to_point;
@@ -89,9 +80,6 @@ bool MovingNode::moveIt() {
             epsilon = 0.03;
         }
 
-        // if (!this->is_silent) {
-        //     RCLCPP_INFO(this->get_logger(), "-----------------------------------%.2f    %.2f", my_goal_point_.first, my_goal_point_.second);
-        // }
         // std::cout << "Speed-----------------------------------" << odometry_.twist.twist.linear.x << "    " << odometry_.twist.twist.linear.y << std::endl;
 
         double desired_ang = atan2((my_goal_point_.pos_y - odometry_.pose.pose.position.y),
@@ -150,9 +138,9 @@ bool MovingNode::moveIt() {
 
             break;
             case 4:
-        //         if (!this->is_silent) {
-        // RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
-        //      }
+                if (!this->is_silent) {
+                    RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
+                }
             return true;
             break;
         }
