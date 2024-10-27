@@ -13,11 +13,7 @@
 #include <queue>
 #include "Structures.h"
 #include "moving_node.h"
-#include "sensor_msgs/msg/image.hpp" // For AR tag detection
-#include "sensor_msgs/msg/camera_info.hpp" // For AR tag detection
-#include "apriltag_msgs/msg/april_tag_detection_array.hpp" // For AR tag detection
-#include "cv_bridge/cv_bridge.h" // For AR tag detection
-#include "opencv2/opencv.hpp" // For AR tag detection
+#include "artag_detector_node.h"  // Include the AR tag detector node
 
 class TaskPlanner : public rclcpp::Node {
 public:
@@ -66,6 +62,8 @@ private:
     JobStatus status = JobStatus::Idle;
 
     MovingNode manual_mover = MovingNode();
+    // Add the AR tag detector node as a member
+    std::shared_ptr<ArtagDetectorNode> detector_node_;
 };
 
 #endif // TASK_PLANNER_H
