@@ -24,7 +24,7 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
     quaternionToYaw(local_odom_msg.pose.pose.orientation);
 
     if (!this->is_silent) {
-         RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
+         //RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
     }
 }
 
