@@ -6,6 +6,13 @@
 #include "apriltag_msgs/msg/april_tag_detection_array.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include "opencv2/opencv.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/image.hpp"
+#include "sensor_msgs/msg/camera_info.hpp"
+#include "apriltag_msgs/msg/april_tag_detection_array.hpp"
+#include "cv_bridge/cv_bridge.h"
+#include "opencv2/opencv.hpp"
+#include "std_msgs/msg/int32.hpp"  
 
 class ArtagDetectorNode : public rclcpp::Node {
 public:
