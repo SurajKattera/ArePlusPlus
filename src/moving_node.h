@@ -23,6 +23,7 @@ public:
     Pose2d my_goal_point_;
     double tolerance_;
     Pose2d prev_point_;
+    Pose2d prev_point_;
 
     bool is_silent = false;
     // TODO needs an estop function @suraj
@@ -30,6 +31,7 @@ public:
     void go_to_point(Pose2d my_point, double tolerance);
     void stopManual();
 
+    bool is_done();
 private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);
     bool moveIt();
