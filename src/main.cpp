@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
     bool do_auto_load_locations = true;
 
     if (do_auto_load_orders) {
-        initial_tasks.push_back(std::pair<int, int>(3, 1));
-        initial_tasks.push_back(std::pair<int, int>(2, 3));
-        initial_tasks.push_back(std::pair<int, int>(3, 2));
+        initial_tasks.push_back(std::pair<int, int>(1, 1));
+        //initial_tasks.push_back(std::pair<int, int>(2, 3));
+        //initial_tasks.push_back(std::pair<int, int>(3, 2));
     }
 
     // Update the TaskPlanner with initial tasks

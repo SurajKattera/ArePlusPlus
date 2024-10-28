@@ -98,13 +98,13 @@ bool MovingNode::moveIt() {
                 cmdSender(0,0);
                 move_now_ = false;
                 state_ = 4;
+                if (!this->is_silent) {
+                    RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
+                }
             }
 
         break;
         case 4:
-            if (!this->is_silent) {
-                RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
-            }
         return true;
         break;
     }

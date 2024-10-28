@@ -235,14 +235,14 @@ std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d &destinatio
     destination_node.is_final_approach = true;  // Ensure this is marked as the final approach
     path.push_back(destination_node);
 
-    if (this->debug_enable_logging) {
-        RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
-                    destination.pos_x, destination.pos_y, destination.yaw);
-        for (const auto& node : path) {
-            RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
-                        node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
-        }
-    }
+    // if (this->debug_enable_logging) {
+    //     RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
+    //                 destination.pos_x, destination.pos_y, destination.yaw);
+    //     for (const auto& node : path) {
+    //         RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
+    //                     node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
+    //     }
+    // }
 
     return path;
 }
@@ -260,7 +260,7 @@ bool TaskPlanner::load_locations_from_file() {
     // First waypoint: (0.5, -1, 3.14)
     NavNode waypoint1(ActionType::normal);
     waypoint1.pose = Pose2d(0.5, -1, 3.14);
-    waypoint1.is_manual_approach = false;
+    waypoint1.is_manual_approach = true;
     waypoint1.is_final_approach = false;
     path1.emplace_back(std::move(waypoint1));  // Add the first waypoint
     
@@ -272,11 +272,11 @@ bool TaskPlanner::load_locations_from_file() {
     path1.emplace_back(std::move(waypoint2));  // Add the second waypoint
     
     // Assign the path to station_locations[-1]
-    station_locations[-1] = Station(1, Pose2d(-2, -1, 0), std::move(path1));
+    station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), std::move(path1));
     // // Load station locations with paths generated from the center to the station
-    // station_locations[1] = Station(1, Pose2d(1, 1, 0), generatePathToStation(Pose2d(1, 1, 0)));
-    // station_locations[2] = Station(2, Pose2d(2, 1, 0), generatePathToStation(Pose2d(2, 1, 0)));
-    // station_locations[3] = Station(3, Pose2d(5, 1, 0), generatePathToStation(Pose2d(5, 1, 0)));
+     station_locations[1] = Station(1, Pose2d(1, 1, 0), generatePathToStation(Pose2d(1, 1, 0)));
+     station_locations[2] = Station(2, Pose2d(2, 1, 0), generatePathToStation(Pose2d(2, 1, 0)));
+     station_locations[3] = Station(3, Pose2d(5, 1, 0), generatePathToStation(Pose2d(5, 1, 0)));
 
     // station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), generatePathToStation(Pose2d(-2, -1, 0)));
     // station_locations[-2] = Station(-2, Pose2d(-2, 2, 0), generatePathToStation(Pose2d(-2, 2, 0)));
