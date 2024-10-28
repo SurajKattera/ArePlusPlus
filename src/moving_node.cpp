@@ -4,7 +4,7 @@
 #include <cmath>
 #include "moving_node.h"
 
-MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(1) {
+MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(0) {
     // Subscribe for the Lcommand for vel
     cmd_vel_pub_ = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
@@ -34,7 +34,7 @@ void MovingNode::go_to_point(Pose2d my_point) {
     my_goal_point_.pos_y = my_point.pos_y;
     my_goal_point_.yaw = my_point.yaw;
     move_now_ = true;
-    state_ = 1;
+    state_ = 0;
 }
 
 // This is not a duplicate function. Do not remove
@@ -44,14 +44,24 @@ void MovingNode::go_to_point(Pose2d my_point, double tolerance) {
     my_goal_point_.pos_y = my_point.pos_y;
     my_goal_point_.yaw = my_point.yaw;
     move_now_ = true;
-    state_ = 1;
+    state_ = 0;
+}
+
+void MovingNode::stopManual() {
+    state_ = 4;
 }
 
 bool MovingNode::moveIt() {
+
+    // @Suraj Uncomment this an put your service boolean in and the e-stop will work
+    // if(service_boolean_ == true) return false;
+
+
     double safe_stop = 0.03;
 
     double turn_l_r = 0.2;
     double turn_desired = 0.3;
+    double turn_moving = 1.0;
     double move_f_b = 1.0; // This is the throttle
     double epsilon = 0.1; // Angular error
     
@@ -69,10 +79,24 @@ bool MovingNode::moveIt() {
     if(desired_ang - odometry_yaw_ > 0) turn_l_r = std::abs(turn_l_r);
     else if(desired_ang - odometry_yaw_ < 0) turn_l_r = -turn_l_r;
 
+    // RCLCPP_INFO(this->get_logger(), "state %d", state_);
+
     // Main state machine for rotating and moving linearly
     switch(state_) {
+        case 0:
+            prev_point_.pos_x = odometry_.pose.pose.position.x;
+            prev_point_.pos_y = odometry_.pose.pose.position.y;
+            prev_point_.yaw = odometry_.twist.twist.angular.z;
+            state_ = 1;
+        break;
         case 1:
-                cmdSender(turn_l_r, 0);
+            if(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x) > tolerance_ ||
+            std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y) > tolerance_) cmdSender(turn_l_r, 0);
+            else {
+                cmdSender(turn_moving, 0);
+                RCLCPP_INFO(this->get_logger(), "state %d", state_);
+            }
+            
             if((std::abs(desired_ang - odometry_yaw_) <= epsilon)) {
                 state_ = 2;
             }
