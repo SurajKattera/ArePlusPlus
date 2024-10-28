@@ -10,7 +10,7 @@
 
 class MovingNode : public rclcpp::Node {
 public:
-    MovingNode();
+    MovingNode(rclcpp::Node* node);
 
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;

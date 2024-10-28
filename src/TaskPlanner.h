@@ -73,8 +73,8 @@ private:
 
     std::shared_ptr<MovingNode> manual_mover;
     
-    void tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg);  // Declare tag_id_callback
-    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr tag_id_subscription_;  // Subscription for tag ID
+    //void tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg);  // Declare tag_id_callback
+    //rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr tag_id_subscription_;  // Subscription for tag ID
     std::optional<int> latest_detected_tag_;  // Store the latest detected tag ID (optional to handle no detection)
 };
 

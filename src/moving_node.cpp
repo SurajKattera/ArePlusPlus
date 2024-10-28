@@ -4,15 +4,15 @@
 #include <cmath>
 #include "moving_node.h"
 
-MovingNode::MovingNode() : Node("my_robot_mover"), state_(1) {
+MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(1) {
     // Subscribe for the Lcommand for vel
-    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+    cmd_vel_pub_ = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
     // Subscribe to Odometry
-    odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
+    odom_sub_ = node->create_subscription<nav_msgs::msg::Odometry>(
         "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
 
-    timer_ = this->create_wall_timer(
+    timer_ = node->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&MovingNode::moveIt, this)
     );
@@ -50,8 +50,8 @@ void MovingNode::go_to_point(Pose2d my_point, double tolerance) {
 bool MovingNode::moveIt() {
     double safe_stop = 0.03;
 
-    double turn_l_r = 0.1;
-    double turn_desired = 0.1;
+    double turn_l_r = 0.2;
+    double turn_desired = 0.3;
     double move_f_b = 1.0; // This is the throttle
     double epsilon = 0.1; // Angular error
     

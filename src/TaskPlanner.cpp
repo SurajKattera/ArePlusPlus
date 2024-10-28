@@ -5,7 +5,7 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     load_locations_from_file();
     
     
-    manual_mover = std::make_shared<MovingNode>();
+    manual_mover = std::make_shared<MovingNode>(this);
     
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
@@ -15,8 +15,8 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
         
     // Initialize subscription to /detected_tag_id
-    tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-        "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
+    //tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
+    //    "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
 
     for (auto task : initial_tasks) {
         Order order(task.first, task.second);
@@ -34,8 +34,8 @@ TaskPlanner::TaskPlanner()
     odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
         // Initialize subscription to /detected_tag_id
-    tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-        "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
+    //tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
+    //    "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
 }
 
 void TaskPlanner::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -273,10 +273,10 @@ bool TaskPlanner::load_locations_from_file() {
     return true;
 }
 
-void TaskPlanner::tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg) {
-    RCLCPP_INFO(this->get_logger(), "Received tag ID: %d", msg->data);
-    latest_detected_tag_ = msg->data;  // Store the detected tag ID
-}
+// void TaskPlanner::tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg) {
+//     RCLCPP_INFO(this->get_logger(), "Received tag ID: %d", msg->data);
+//     latest_detected_tag_ = msg->data;  // Store the detected tag ID
+// }
 
 
 //ros2 run apriltag_ros apriltag_node --ros-args   -r image_rect:=/camera/image_raw   -r camera_info:=/camera/camera_info   -p family:=36h11   -p size:=0.5   -p max_hamming:=0
