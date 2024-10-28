@@ -265,7 +265,7 @@ bool TaskPlanner::load_locations_from_file() {
     path1.emplace_back(std::move(waypoint1));  // Add the first waypoint
     
     // Second waypoint: (-2, -1, -3.14)
-    NavNode waypoint2(ActionType::advance_state);
+    NavNode waypoint2(ActionType::normal);
     waypoint2.pose = Pose2d(-2, -1, -3.14);
     waypoint2.is_manual_approach = true;
     waypoint2.is_final_approach = true;
