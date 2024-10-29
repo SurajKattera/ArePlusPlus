@@ -9,12 +9,12 @@ def generate_launch_description():
             name='task_handler',
             output='screen'
         ),
-        Node(
-            package='areplusplus',
-            executable='artag_detector_node',
-            name='artag_detector_node',
-            output='screen'
-        ), 
+        # Node(
+        #     package='areplusplus',
+        #     executable='artag_detector_node',
+        #     name='artag_detector_node',
+        #     output='screen'
+        # ), 
         # Launch AprilTag Node from apriltag_ros package
         Node(
             package='apriltag_ros',

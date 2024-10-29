@@ -12,6 +12,13 @@ class MovingNode : public rclcpp::Node {
 public:
     MovingNode(rclcpp::Node* node);
 
+    bool is_silent = false;
+    // TODO needs an estop function @suraj
+    void go_to_point(Pose2d my_point);
+    void go_to_point(Pose2d my_point, double tolerance);
+    bool is_done();
+    void stop_manual();
+private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
@@ -22,13 +29,8 @@ public:
     bool move_now_;
     Pose2d my_goal_point_;
     double tolerance_;
+    Pose2d prev_point_;
 
-    bool is_silent = false;
-    // TODO needs an estop function @suraj
-    void go_to_point(Pose2d my_point);
-    void go_to_point(Pose2d my_point, double tolerance);
-    bool is_done();
-private:
     void odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg);
     bool moveIt();
     double quaternionToYaw(geometry_msgs::msg::Quaternion quat);

@@ -3,8 +3,7 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <cmath>
 #include "moving_node.h"
-
-MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(1) {
+MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(0) {
     // Subscribe for the Lcommand for vel
     cmd_vel_pub_ = node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
 
@@ -19,7 +18,7 @@ MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(1) {
 }
 
 bool MovingNode::is_done() {
-    return (state_ == 4);
+    return (state_ == 3);
 }
 
 void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg) {
@@ -31,95 +30,88 @@ void MovingNode::odom_callback(const nav_msgs::msg::Odometry::SharedPtr odom_msg
          //RCLCPP_INFO(this->get_logger(), "OD %f", odometry_.twist.twist.angular.z);
     }
 }
-
 void MovingNode::go_to_point(Pose2d my_point) {
     tolerance_ = 0.2;
-    my_goal_point_.pos_x = my_point.pos_x;
-    my_goal_point_.pos_y = my_point.pos_y;
-    my_goal_point_.yaw = my_point.yaw;
+    my_goal_point_ = my_point;
     move_now_ = true;
-    state_ = 1;
+    state_ = 0;
 }
 
-// This is not a duplicate function. Do not remove
 void MovingNode::go_to_point(Pose2d my_point, double tolerance) {
     tolerance_ = tolerance;
-    my_goal_point_.pos_x = my_point.pos_x;
-    my_goal_point_.pos_y = my_point.pos_y;
-    my_goal_point_.yaw = my_point.yaw;
+    my_goal_point_ = my_point;
     move_now_ = true;
-    state_ = 1;
+    state_ = 0;
 }
 
+void MovingNode::stop_manual() {
+    state_ = 3;
+}
 bool MovingNode::moveIt() {
-    double safe_stop = 0.03;
-
-    double turn_l_r = 0.2;
-    double turn_desired = 0.3;
-    double move_f_b = 1.0; // This is the throttle
-    double epsilon = 0.1; // Angular error
+    // @suraj uncomment this and put your service boolean in and the e-stop will work
+    // if(service_boolean_ == true) return false;
     
-    if((std::fabs(std::abs(odometry_.pose.pose.position.x - my_goal_point_.pos_x)) <= safe_stop &&
-        std::fabs(std::abs(odometry_.pose.pose.position.y - my_goal_point_.pos_y)) <= safe_stop)) {
-        move_f_b = 0.05;
-        turn_l_r = 0.04;
-        epsilon = 0.03;
-    }
+    const double phase_1_angular_vel = 0.4;
+    const double phase_2_angular_vel = 0.1;
+    const double phase_3_angular_vel = 0.4;
+    const double max_linear_vel = 1.0;
+    const double angular_error_threshold = 0.05;
+    const double distance_threshold = 0.3;
+    
+    double desired_ang = atan2(my_goal_point_.pos_y - odometry_.pose.pose.position.y,
+                               my_goal_point_.pos_x - odometry_.pose.pose.position.x);
+    double angle_diff = desired_ang - odometry_yaw_;
+    angle_diff = atan2(sin(angle_diff), cos(angle_diff)); // Normalize to [-π, π]
 
-    double desired_ang = atan2((my_goal_point_.pos_y - odometry_.pose.pose.position.y),
-                                (my_goal_point_.pos_x - odometry_.pose.pose.position.x));
-
-    // These two lines are for turning clockwise and anticlockwise according to the position
-    if(desired_ang - odometry_yaw_ > 0) turn_l_r = std::abs(turn_l_r);
-    else if(desired_ang - odometry_yaw_ < 0) turn_l_r = -turn_l_r;
-
-    double distance_error = std::hypot(my_goal_point_.pos_x - odometry_.pose.pose.position.x,
+    double distance_to_goal = hypot(my_goal_point_.pos_x - odometry_.pose.pose.position.x,
                                     my_goal_point_.pos_y - odometry_.pose.pose.position.y);
-    double angle_error = desired_ang - odometry_yaw_;
-    
-    // Normalize angle error to [-pi, pi]
-    while (angle_error > M_PI) angle_error -= 2 * M_PI;
-    while (angle_error < -M_PI) angle_error += 2 * M_PI;
-
-    double linear_velocity = std::min(move_f_b, distance_error);
-    double angular_velocity = 0.5 * angle_error;  // Proportional control for angular correction
-
-    // Main state machine for rotating and moving linearly
     switch(state_) {
-        case 1:
-            cmdSender(turn_l_r, 0);
-            if((std::abs(desired_ang - odometry_yaw_) <= epsilon)) {
-                state_ = 2;
-            }
-            break;
-        case 2:
-            cmdSender(angular_velocity, linear_velocity);
-
-            if(std::abs(angle_error) > epsilon * 2) {  // Increased threshold for switching to turning state
+        case 0: // Turn to face destination
+            if(fabs(angle_diff) > angular_error_threshold) {
+                cmdSender(copysign(phase_1_angular_vel, angle_diff), 0);
+            } else {
                 state_ = 1;
             }
-            if(distance_error < tolerance_){
-                state_ = 3;
-            }
-            break;
-        case 3:
-            if(my_goal_point_.yaw - odometry_yaw_ > 0) turn_desired = std::abs(turn_desired);
-            else if(my_goal_point_.yaw - odometry_yaw_ < 0) turn_desired = -turn_desired;
-            
-            cmdSender(turn_desired, 0);
+        break;
 
-            if(std::abs(my_goal_point_.yaw - odometry_yaw_) < 0.2){
-                cmdSender(0,0);
-                move_now_ = false;
-                state_ = 4;
-                if (!this->is_silent) {
-                    RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x,  my_goal_point_.pos_y);
+        case 1: // Move towards destination
+            if(distance_to_goal > tolerance_) {
+                double angular_correction = std::min(fabs(angle_diff) / angular_error_threshold, 1.0) * phase_2_angular_vel;
+                
+                // Calculate linear velocity with falloff
+                double linear_vel;
+                if (distance_to_goal > distance_threshold) {
+                    linear_vel = max_linear_vel;
+            } else {
+                    linear_vel = max_linear_vel * (distance_to_goal / distance_threshold);
+            }
+                
+                cmdSender(copysign(angular_correction, angle_diff), linear_vel);
+            } else {
+                state_ = 2;
+            }
+        break;
+
+        case 2: // Turn to desired yaw
+            {
+                double yaw_diff = my_goal_point_.yaw - odometry_yaw_;
+                yaw_diff = atan2(sin(yaw_diff), cos(yaw_diff)); // Normalize to [-π, π]
+                
+                if(fabs(yaw_diff) > angular_error_threshold) {
+                    cmdSender(copysign(phase_3_angular_vel, yaw_diff), 0);
+                } else {
+                    cmdSender(0, 0);
+                    move_now_ = false;
+                        state_ = 3;
+                    if (!this->is_silent) {
+                            RCLCPP_INFO(this->get_logger(), "Location achieved! X value: %le || Y value: %le", my_goal_point_.pos_x, my_goal_point_.pos_y);
+                    }
                 }
             }
-            break;
-        case 4:
+        break;
+
+        case 3: // Done
             return true;
-            break;
     }
     return false;
 }

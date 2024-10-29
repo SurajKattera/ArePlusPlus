@@ -81,7 +81,7 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
         // Here, you'd ideally stop the manual movement mode before continuing
         is_manual_mode_ = false; // Set manual mode to false
         is_nav2_mode_ = true;    // Set Nav2 mode to true
-        // TODO @thish you need to include code here to forcefully stop the manualmover code
+        manual_mover->stop_manual();
     }
 
    
@@ -224,12 +224,12 @@ bool TaskPlanner::load_locations_from_file() {
     waypoint2.is_final_approach = true;
     path1.emplace_back(std::move(waypoint2));  // Add the second waypoint
 
-    // Third waypoint: (-2.5, -1, -3.14)
-    NavNode waypoint3(ActionType::normal);
-    waypoint3.pose = Pose2d(-2.5, -1, -3.14);
-    waypoint3.is_manual_approach = true;
-    waypoint3.is_final_approach = false;
-    path1.emplace_back(std::move(waypoint3));  // Add the third waypoint, beyond the shelf
+    // // Third waypoint: (-2.5, -1, -3.14)
+    // NavNode waypoint3(ActionType::normal);
+    // waypoint3.pose = Pose2d(-2.5, -1, -3.14);
+    // waypoint3.is_manual_approach = true;
+    // waypoint3.is_final_approach = false;
+    // path1.emplace_back(std::move(waypoint3));  // Add the third waypoint, beyond the shelf
     
     // Assign the path to station_locations[-1]
     station_locations[-1] = Station(0, Pose2d(-2, -1, 0), std::move(path1));
