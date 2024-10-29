@@ -199,7 +199,7 @@ void MovingNode::cmdSender(double angular_velocity, double linear_velocity) {
         	//Stop mission and movement of turtlebot
         	//move_now_ == false;
         	//Stopping turtlebot's movement (Looping 10 times to ensure movement is halted)
-        	for(int i = 0; i < 10 ; i++)
+        	for(int i = 0; i < 40 ; i++)
             {
         		//Setting linear and angular velocities to 0
         		moveMsg_.linear.x = 0 ;  
