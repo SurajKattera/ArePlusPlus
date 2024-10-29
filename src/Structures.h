@@ -57,12 +57,17 @@ struct Order {
 
 struct NavNode {
     Pose2d pose;
-    bool is_manual_approach = true; 
+    bool is_manual_approach = false; 
     bool is_final_approach = false;
-    ActionType action_type;
+    ActionType action_type = ActionType::normal;
 
     NavNode() = default; 
     explicit NavNode(ActionType type) : action_type(type) {}
+    explicit NavNode(Pose2d p, bool is_man, bool is_final) {
+        pose = p; 
+        is_manual_approach = is_man; 
+        is_final_approach = is_final;
+    }
 };
 
 struct Station {
@@ -73,6 +78,11 @@ struct Station {
     Station() : station_id(0) {}
     Station(int id, Pose2d loc, std::vector<NavNode> pth) 
         : station_id(id), location(std::move(loc)), path(std::move(pth)) {}
+    Station(int id, Pose2d loc, NavNode pth) 
+        : station_id(id), location(std::move(loc)) {
+            path.push_back(pth);
+        }
+
 };
 
 #endif  // STRUCTURE_H

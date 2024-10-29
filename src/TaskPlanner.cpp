@@ -3,20 +3,21 @@
 TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     : Node("task_planner") {
     load_locations_from_file();
-    
-    
+        
     manual_mover = std::make_shared<MovingNode>(this);
+    tagger_node = std::make_shared<ArtagDetectorNode>(this);
     
+
+     // Create the action client
+    action_client_ = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
+        this, "navigate_to_pose");
+
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
 
     odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
-        
-    // Initialize subscription to /detected_tag_id
-    tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-        "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
 
     for (auto task : initial_tasks) {
         Order order(task.first, task.second);
@@ -24,18 +25,23 @@ TaskPlanner::TaskPlanner(std::vector<std::pair<int, int>> initial_tasks)
     }
 }
 
-TaskPlanner::TaskPlanner()
-    : Node("task_planner") {
+TaskPlanner::TaskPlanner() : Node("task_planner") {
      
+    manual_mover = std::make_shared<MovingNode>(this);
+    tagger_node = std::make_shared<ArtagDetectorNode>(this);
+    
+
+     // Create the action client
+    action_client_ = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
+        this, "navigate_to_pose");
+
     timer_ = this->create_wall_timer(
         std::chrono::milliseconds(100),
         std::bind(&TaskPlanner::timer_callback, this));
 
     odom_subscription_ = this->create_subscription<nav_msgs::msg::Odometry>(
         "odom", 10, std::bind(&TaskPlanner::odom_callback, this, std::placeholders::_1));
-        // Initialize subscription to /detected_tag_id
-    //tag_id_subscription_ = this->create_subscription<std_msgs::msg::Int32>(
-    //    "detected_tag_id", 10, std::bind(&TaskPlanner::tag_id_callback, this, std::placeholders::_1));
+
 }
 
 void TaskPlanner::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -55,7 +61,10 @@ void TaskPlanner::odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 }
 
 bool TaskPlanner::is_at_target(const Pose2d &target) {
-    
+    if (is_manual_mode_) {
+        return manual_mover->is_done();
+    }
+
     double dx = std::abs(current_pose_.pos_x - target.pos_x);
     double dy = std::abs(current_pose_.pos_y - target.pos_y);
     double dyaw = std::abs(current_pose_.yaw - target.yaw);
@@ -75,12 +84,10 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
         // TODO @thish you need to include code here to forcefully stop the manualmover code
     }
 
-    // Create the action client
-    auto action_client = rclcpp_action::create_client<nav2_msgs::action::NavigateToPose>(
-        this->shared_from_this(), "navigate_to_pose");
+   
 
     // Wait for the action server to be available
-    if (!action_client->wait_for_action_server(std::chrono::seconds(5))) {
+    if (!action_client_->wait_for_action_server(std::chrono::seconds(5))) {
         RCLCPP_ERROR(this->get_logger(), "NavigateToPose action server not available after waiting");
         this->is_active = false;
         return;
@@ -98,10 +105,11 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
     auto send_goal_options = rclcpp_action::Client<nav2_msgs::action::NavigateToPose>::SendGoalOptions();
     send_goal_options.result_callback = [this](auto result) {
         RCLCPP_INFO(this->get_logger(), "Navigation to target completed.");
-        is_nav2_mode_ = false;  // Reset Nav2 mode after completion
     };
     
-    action_client->async_send_goal(goal, send_goal_options);
+    action_client_->async_send_goal(goal, send_goal_options);
+    RCLCPP_INFO(this->get_logger(), "Sending goal to Nav2...");
+
 }
 
 void TaskPlanner::manual_go_to_point(const Pose2d &target) {
@@ -193,61 +201,6 @@ void TaskPlanner::prep_next_order() {
     pickup_station_id = product_locations[new_order.product_id];
 }
 
-std::vector<NavNode> TaskPlanner::generatePathToStation(const Pose2d &destination) {
-    std::vector<NavNode> path;
-
-    // Assume the robot starts at the origin (0, 0, 0)
-    Pose2d current_pose(0.0, 0.0, 0.0);
-
-    double step_size = 0.5;  // Distance between points along the path
-
-    // Calculate the differences between the current pose and the destination
-    double dx = destination.pos_x - current_pose.pos_x;
-    double dy = destination.pos_y - current_pose.pos_y;
-    double dyaw = destination.yaw - current_pose.yaw;
-
-    // Determine the number of steps 
-    int steps = std::max(std::abs(dx / step_size), std::abs(dy / step_size));
-
-    // Generate intermediate points along the path 
-    for (int i = 1; i <= steps; ++i) {
-        double x = current_pose.pos_x + (i * dx) / steps;
-        double y = current_pose.pos_y + (i * dy) / steps;
-        double yaw = current_pose.yaw + (i * dyaw) / steps;
-
-        Pose2d intermediate_pose(x, y, yaw);
-
-        // Create a NavNode for the intermediate pose with ActionType::normal
-        NavNode node(ActionType::normal);
-        node.pose = intermediate_pose;
-
-        // Optionally, set flags for manual or final approach if needed
-        if (i == steps) {
-            node.is_final_approach = true;  // Mark the last node as the final approach
-        }
-
-        path.push_back(node);
-    }
-
-    // Add the final destination node with ActionType::normal
-    NavNode destination_node(ActionType::normal);
-    destination_node.pose = destination;
-    destination_node.is_final_approach = true;  // Ensure this is marked as the final approach
-    path.push_back(destination_node);
-
-    // if (this->debug_enable_logging) {
-    //     RCLCPP_INFO(this->get_logger(), "Generated path to destination (%f, %f, %f):", 
-    //                 destination.pos_x, destination.pos_y, destination.yaw);
-    //     for (const auto& node : path) {
-    //         RCLCPP_INFO(this->get_logger(), "Path point: (%f, %f, %f)", 
-    //                     node.pose.pos_x, node.pose.pos_y, node.pose.yaw);
-    //     }
-    // }
-
-    return path;
-}
-
-
 bool TaskPlanner::load_locations_from_file() {
     /*
     shelf#2 (-2,2)    shelf#3 (2,2)
@@ -270,13 +223,20 @@ bool TaskPlanner::load_locations_from_file() {
     waypoint2.is_manual_approach = true;
     waypoint2.is_final_approach = true;
     path1.emplace_back(std::move(waypoint2));  // Add the second waypoint
+
+    // Third waypoint: (-2.5, -1, -3.14)
+    NavNode waypoint3(ActionType::normal);
+    waypoint3.pose = Pose2d(-2.5, -1, -3.14);
+    waypoint3.is_manual_approach = true;
+    waypoint3.is_final_approach = false;
+    path1.emplace_back(std::move(waypoint3));  // Add the third waypoint, beyond the shelf
     
     // Assign the path to station_locations[-1]
-    station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), std::move(path1));
+    station_locations[-1] = Station(0, Pose2d(-2, -1, 0), std::move(path1));
     // // Load station locations with paths generated from the center to the station
-     station_locations[1] = Station(1, Pose2d(1, 1, 0), generatePathToStation(Pose2d(1, 1, 0)));
-     station_locations[2] = Station(2, Pose2d(2, 1, 0), generatePathToStation(Pose2d(2, 1, 0)));
-     station_locations[3] = Station(3, Pose2d(5, 1, 0), generatePathToStation(Pose2d(5, 1, 0)));
+    station_locations[1] = Station(1, Pose2d(1, 1, 0), NavNode(Pose2d(1, 1, 0), true, false));
+    station_locations[2] = Station(2, Pose2d(2, 1, 0), NavNode(Pose2d(2, 1, 0), true, false));
+    station_locations[3] = Station(3, Pose2d(5, 1, 0), NavNode(Pose2d(5, 1, 0), true, false));
 
     // station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), generatePathToStation(Pose2d(-2, -1, 0)));
     // station_locations[-2] = Station(-2, Pose2d(-2, 2, 0), generatePathToStation(Pose2d(-2, 2, 0)));
@@ -291,23 +251,9 @@ bool TaskPlanner::load_locations_from_file() {
     return true;
 }
 
-void TaskPlanner::tag_id_callback(const std_msgs::msg::Int32::SharedPtr msg) {
-     RCLCPP_INFO(this->get_logger(), "Received tag ID: %d", msg->data);
-     latest_detected_tag_ = msg->data;  // Store the detected tag ID
- }
-
-
-//ros2 run apriltag_ros apriltag_node --ros-args   -r image_rect:=/camera/image_raw   -r camera_info:=/camera/camera_info   -p family:=36h11   -p size:=0.5   -p max_hamming:=0
 bool TaskPlanner::get_visible_station_code(int& tag_id) {
-    if (latest_detected_tag_) {  // Check if a tag ID was detected
-        tag_id = *latest_detected_tag_;  // Dereference the optional value
-        RCLCPP_INFO(this->get_logger(), "Detected station tag ID: %d", tag_id);
-        latest_detected_tag_.reset();  // Clear the stored tag after using it
-        return true;
-    } else {
-        RCLCPP_WARN(this->get_logger(), "No station tag detected.");
-        return false;
-    }
+    // Needs: //ros2 run apriltag_ros apriltag_node --ros-args   -r image_rect:=/camera/image_raw   -r camera_info:=/camera/camera_info   -p family:=36h11   -p size:=0.5   -p max_hamming:=0
+    return tagger_node->get_last_seen_tag(tag_id);
 };
 
 void TaskPlanner::timer_callback() {
@@ -327,7 +273,7 @@ void TaskPlanner::timer_callback() {
 
     // Check if we're at our current target
     if (is_at_target(current_job_points_.front().pose) || // This is for a normal action
-        current_job_points_.front().action_type != ActionType::normal) {                              // This indicates a special action
+    current_job_points_.front().action_type != ActionType::normal) {                              // This indicates a special action
         current_job_points_.pop(); // Clear the current task
 
         if (!current_job_points_.empty()) {
@@ -351,8 +297,7 @@ void TaskPlanner::timer_callback() {
                     status = JobStatus::FromDestination;
                 }
                 else {
-                    // TODO @suraj Print a more descriptive error message, not error. This should not trigger, implies the job wasn't reset, or somehow had more than 4 phases
-                    RCLCPP_WARN(this->get_logger(), "ERROR");
+                    RCLCPP_WARN(this->get_logger(), "Unexpected job status. This may indicate that the job wasn't reset properly or has more than 4 phases.");
                 }
                 break;
             case ActionType::pickup:
@@ -370,27 +315,28 @@ void TaskPlanner::timer_callback() {
                 break;
             default:
                 // This means an invalid action type, trigger an error
+                RCLCPP_ERROR(this->get_logger(), "Invalid action type encountered");
                 break;
             }
         }
-    }
 
-    if (current_job_points_.front().is_final_approach) {
-        int station_id = 0;
-        if (!get_visible_station_code(station_id))
-            return;
-
-        // The apriltag doesn't match the expected value
-        if (status == JobStatus::ToPickup && station_id != pickup_station_id) {
-            RCLCPP_WARN(this->get_logger(), "Incorrect pickup location, task aborted");
-            // TODO actually abort here
-        }
-        if (status == JobStatus::ToDestination && station_id != dropoff_station_id) {
-            RCLCPP_WARN(this->get_logger(), "Incorrect dropoff location, task aborted");
-            // TODO actually abort here
+        if (current_job_points_.front().is_final_approach) {
+            int station_id = 0;
+            if (!get_visible_station_code(station_id))
+                return;
+             // The apriltag doesn't match the expected value
+            if (status == JobStatus::ToPickup && station_id != station_locations[pickup_station_id].station_id) {
+                RCLCPP_ERROR(this->get_logger(), "Error: Incorrect pickup location. Expected station ID %d, but found %d. Task aborted.", station_locations[pickup_station_id].station_id, station_id);
+                // TODO actually abort here
+            }
+            if (status == JobStatus::ToDestination && station_id != station_locations[dropoff_station_id].station_id) {
+                RCLCPP_ERROR(this->get_logger(), "Error: Incorrect dropoff location. Expected station ID %d, but found %d. Task aborted.", station_locations[dropoff_station_id].station_id, station_id);
+                // TODO actually abort here
+            }
         }
     }
 }
+
 
 void TaskPlanner::set_activation_state(bool state) {
     this->is_active = state;
