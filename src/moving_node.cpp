@@ -3,6 +3,9 @@
 #include <nav_msgs/msg/odometry.hpp>
 #include <cmath>
 #include "moving_node.h"
+#include "std_srvs/srv/set_bool.hpp"
+#include "std_msgs/msg/bool.hpp"
+
 
 MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(0) {
     // Subscribe for the Lcommand for vel
@@ -11,6 +14,10 @@ MovingNode::MovingNode(rclcpp::Node* node) : Node("my_robot_mover"), state_(0) {
     // Subscribe to Odometry
     odom_sub_ = node->create_subscription<nav_msgs::msg::Odometry>(
         "/odom", 10, std::bind(&MovingNode::odom_callback, this, std::placeholders::_1));
+
+    // Creating service for E-STOP functionality
+        estopService_ = this->create_service<std_srvs::srv::SetBool>("estop", 
+                std::bind(&MovingNode::estop,this,std::placeholders::_1, std::placeholders::_2));
 
     timer_ = node->create_wall_timer(
         std::chrono::milliseconds(100),
@@ -162,3 +169,49 @@ void MovingNode::cmdSender(double angular_velocity, double linear_velocity) {
     cmd_vel_pub_->publish(twist_msg);
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 }
+
+
+// E-STOP service callback function
+    void MovingNode::estop(const std::shared_ptr<std_srvs::srv::SetBool::Request> req,std::shared_ptr<std_srvs::srv::SetBool::Response> res){
+
+        geometry_msgs::msg::Twist moveMsg_;
+    
+    //If true service call received
+        if(req->data)
+        {
+           //Check if mission is active, send log info stating status of task
+           /* 
+               //If robot is currently active
+               if(move_now_)
+               {
+                   RCLCPP_INFO(this->get_logger(),"Task active, and will continue");
+               {
+               else
+               {
+                   move_now_ == true; // NOTE:ENSURE THIS DOESNT CAUSE ERRORS WITH TURTLEBOT MOVING WITH NO POINT TO GO TO
+                   RCLCPP_INFO(this->get_logger(),"Turtlebot restarted, will continue if outstanding tasks available");
+               }
+           */
+        }
+    //If false service call received
+        else
+        {
+        	//Stop mission and movement of turtlebot
+        	//move_now_ == false;
+        	//Stopping turtlebot's movement (Looping 10 times to ensure movement is halted)
+        	for(int i = 0; i < 10 ; i++)
+            {
+        		//Setting linear and angular velocities to 0
+        		moveMsg_.linear.x = 0 ;  
+        		moveMsg_.linear.y = 0;  
+        		moveMsg_.angular.z = 0;
+                
+        		//Publishing velocities to topic
+        		cmd_vel_pub_->publish(moveMsg_);
+        	}
+        }
+    
+    	res->success = true;
+        res->message = "E-STOP Pressed";
+    
+    }
