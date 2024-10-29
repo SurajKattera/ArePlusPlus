@@ -99,8 +99,9 @@ private:
     /**
      * @brief Move to a point using manual control
      * @param target desired target to visit
+     * @param yaw does yaw need to be obeyed
      */
-    void manual_go_to_point(const Pose2d &target);
+    void manual_go_to_point(const Pose2d &target, bool yaw);
 
     /**
      * @brief Move to a point using Nav2

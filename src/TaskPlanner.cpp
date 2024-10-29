@@ -112,14 +112,14 @@ void TaskPlanner::nav2_go_to_point(const Pose2d &target) {
 
 }
 
-void TaskPlanner::manual_go_to_point(const Pose2d &target) {
+void TaskPlanner::manual_go_to_point(const Pose2d &target, bool yaw) {
     if (is_nav2_mode_) {
         RCLCPP_INFO(this->get_logger(), "Switching from Nav2 mode to manual mode.");
         is_manual_mode_ = true; 
         is_nav2_mode_ = false;   
         // TODO @jack need code here to forcefully stop the nav2 function if it's still going
     }
-    manual_mover->go_to_point(target);
+    manual_mover->go_to_point(target, yaw);
 }
 
 void TaskPlanner::prep_next_order() {
@@ -219,6 +219,7 @@ bool TaskPlanner::load_locations_from_file() {
     waypoint1.pose = Pose2d(0.5, -1, 3.14);
     waypoint1.is_manual_approach = true;
     waypoint1.is_final_approach = false;
+    waypoint1.respect_yaw = false;
     path1.emplace_back(std::move(waypoint1));  // Add the first waypoint
     
     // Second waypoint: (-2, -1, -3.14)
@@ -227,14 +228,7 @@ bool TaskPlanner::load_locations_from_file() {
     waypoint2.is_manual_approach = true;
     waypoint2.is_final_approach = true;
     path1.emplace_back(std::move(waypoint2));  // Add the second waypoint
-
-    // // Third waypoint: (-2.5, -1, -3.14)
-    // NavNode waypoint3(ActionType::normal);
-    // waypoint3.pose = Pose2d(-2.5, -1, -3.14);
-    // waypoint3.is_manual_approach = true;
-    // waypoint3.is_final_approach = false;
-    // path1.emplace_back(std::move(waypoint3));  // Add the third waypoint, beyond the shelf
-    
+ 
     // Assign the path to station_locations[-1]
     station_locations[-1] = Station(0, Pose2d(-2, -1, 0), std::move(path1));
 
@@ -242,28 +236,28 @@ bool TaskPlanner::load_locations_from_file() {
 
     //path2
     // First waypoint: (0.5, 1, 3.14)
-    path2.emplace_back(Pose2d(0.5, 1, 3.14), true, false);
+    path2.emplace_back(Pose2d(0.5, 1, 3.14), true, false, true);
     // Second waypoint: (-2, 2, 0)
-    path2.emplace_back(Pose2d(-2, 2, 0), true, true);
+    path2.emplace_back(Pose2d(-2, 2, 0), true, true, true);
 
 
     //path3
     // First waypoint: (-0.5, 1, 0)
-    path3.emplace_back(Pose2d(-0.5, 1, 0), true, false);
+    path3.emplace_back(Pose2d(-0.5, 1, 0), true, false, true);
     // Second waypoint: (2, 2, 3.14)
-    path3.emplace_back(Pose2d(2, 2, 3.14), true, true);
+    path3.emplace_back(Pose2d(2, 2, 3.14), true, true, true);
 
 
     //path4
     // First waypoint: (-0.5, -1, 0)
-    path3.emplace_back(Pose2d(-0.5, -1, 0), true, false);
+    path3.emplace_back(Pose2d(-0.5, -1, 0), true, false, true);
     // Second waypoint: (2, -1, 3.14)
-    path3.emplace_back(Pose2d(2, -1, 3.14), true, true);
+    path3.emplace_back(Pose2d(2, -1, 3.14), true, true, true);
     
     // // Load station locations with paths generated from the center to the station
-    station_locations[1] = Station(1, Pose2d(-2.5, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0), true, false));
-    station_locations[2] = Station(2, Pose2d(0, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0), true, false));
-    station_locations[3] = Station(3, Pose2d(2.5, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0), true, false));
+    station_locations[1] = Station(1, Pose2d(-2.5, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0), true, false, true));
+    station_locations[2] = Station(2, Pose2d(0, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0), true, false, true));
+    station_locations[3] = Station(3, Pose2d(2.5, -2.5, 0), NavNode(Pose2d(-2.5, -2.5, 0),true, false, true));
 
     // station_locations[-1] = Station(-1, Pose2d(-2, -1, 0), generatePathToStation(Pose2d(-2, -1, 0)));
     // station_locations[-2] = Station(-2, Pose2d(-2, 2, 0), generatePathToStation(Pose2d(-2, 2, 0)));
@@ -307,7 +301,7 @@ void TaskPlanner::timer_callback() {
             switch (current_job_points_.front().action_type) {
             case ActionType::normal:
                 if (current_job_points_.front().is_manual_approach) {
-                    manual_go_to_point(current_job_points_.front().pose); // Command to move to the next one
+                    manual_go_to_point(current_job_points_.front().pose, current_job_points_.front().respect_yaw); // Command to move to the next one
                 }
                 else {
                     nav2_go_to_point(current_job_points_.front().pose); // Let Nav2 do it
