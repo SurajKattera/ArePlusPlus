@@ -59,14 +59,16 @@ struct NavNode {
     Pose2d pose;
     bool is_manual_approach = false; 
     bool is_final_approach = false;
+    bool respect_yaw = true;
     ActionType action_type = ActionType::normal;
 
     NavNode() = default; 
     explicit NavNode(ActionType type) : action_type(type) {}
-    explicit NavNode(Pose2d p, bool is_man, bool is_final) {
+    explicit NavNode(Pose2d p, bool is_man, bool is_final, bool do_yaw) {
         pose = p; 
         is_manual_approach = is_man; 
         is_final_approach = is_final;
+        respect_yaw = do_yaw;
     }
 };
 

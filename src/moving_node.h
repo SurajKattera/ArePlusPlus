@@ -14,7 +14,7 @@ public:
 
     bool is_silent = false;
     // TODO needs an estop function @suraj
-    void go_to_point(Pose2d my_point);
+    void go_to_point(Pose2d my_point, bool ignore_yaw);
     void go_to_point(Pose2d my_point, double tolerance);
     bool is_done();
     void stop_manual();
@@ -27,6 +27,7 @@ private:
     double odometry_yaw_;
     int state_;
     bool move_now_;
+    bool yaw_check = true;
     Pose2d my_goal_point_;
     double tolerance_;
     Pose2d prev_point_;
