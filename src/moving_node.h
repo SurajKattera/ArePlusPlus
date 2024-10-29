@@ -7,6 +7,9 @@
 #include <cmath>
 #include <utility>
 #include "Structures.h"
+#include "std_srvs/srv/set_bool.hpp"
+#include "std_msgs/msg/bool.hpp"
+
 
 class MovingNode : public rclcpp::Node {
 public:
@@ -15,6 +18,8 @@ public:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Service<std_srvs::srv::SetBool>::SharedPtr estopService_;
+
 
     nav_msgs::msg::Odometry odometry_;
     double odometry_yaw_;
@@ -26,7 +31,7 @@ public:
     Pose2d prev_point_;
 
     bool is_silent = false;
-    // TODO needs an estop function @suraj
+    void estop(const std::shared_ptr<std_srvs::srv::SetBool::Request> req,std::shared_ptr<std_srvs::srv::SetBool::Response> res);
     void go_to_point(Pose2d my_point);
     void go_to_point(Pose2d my_point, double tolerance);
     void stopManual();
